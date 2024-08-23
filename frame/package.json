@@ -1,5 +1,5 @@
 {
-  "name": "cartesi-frame",
+  "name": "frame",
   "private": true,
   "type": "module",
   "scripts": {
