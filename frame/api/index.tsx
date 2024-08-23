@@ -21,7 +21,7 @@ app.use('/*', serveStatic({ root: './public' }))
 app.frame('/', (c) => {
   return c.res({
     title,
-    image: 'https://i.imgur.com/2tRZhkQ.jpeg',
+    image: '/pikachu.jpg',
     imageAspectRatio: '1:1',
     intents: [
     <Button action={`/verify`}>PLAY 🔴</Button>,
@@ -85,14 +85,23 @@ app.frame('/solo', (c) => {
 })
 
 app.frame('/pokedex/:id', (c) => {
+  const id = Number(c.req.param('id')) || 0;
+  const pokemonArea = "Kanto";
+  const index = 25;
+  const totalPerArea = 151;
+  
+  function boundIndex (index: number) {
+    return ((index % totalPerArea) + totalPerArea) % totalPerArea
+  }
+
   return c.res({
     title,
     image: 'https://i.imgur.com/2tRZhkQ.jpeg',
     imageAspectRatio: '1:1',
     intents: [
-    <Button action={`/pokedex/1`}>⬅️</Button>,
+    <Button action={`/pokedex/${boundIndex(id-1)}`}>⬅️</Button>,
     <Button action={`/`}>OK ✅</Button>,
-    <Button action={`/pokedex/1`}>➡️</Button>,
+    <Button action={`/pokedex/${boundIndex(id+1)}`}>➡️</Button>,
     ],
   })
 })
