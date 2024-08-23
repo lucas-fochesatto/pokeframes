@@ -84,15 +84,17 @@ app.frame('/solo', (c) => {
   })
 })
 
-app.frame('/pokedex/:id', (c) => {
+app.frame('/pokedex/:playeraddress/:id', (c) => {
   const id = Number(c.req.param('id')) || 0;
-  const pokemonArea = "Kanto";
-  const index = 25;
-  const totalPerArea = 151;
+  const playerAddress = String(c.req.param('playeraddress')) || "0x";
+  const totalPlayerPokemons = 10;
   
+
   function boundIndex (index: number) {
-    return ((index % totalPerArea) + totalPerArea) % totalPerArea
+    return ((index % totalPlayerPokemons) + totalPlayerPokemons) % totalPlayerPokemons
   }
+
+// Check how NFTs work in Cartesi and somehow fetch user collections as an array
 
   return c.res({
     title,
