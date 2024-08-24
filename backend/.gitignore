@@ -1,4 +1,7 @@
+.sunodo
 .cartesi
-.yarn
 /dist
 /node_modules
+src/schema.d.ts
+testnet.env
+sunodo.env
