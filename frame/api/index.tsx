@@ -189,7 +189,8 @@ app.frame('/loading/:pokemonId/:txid', async (c) => {
         <Button action={`/loading/${pokemonId}/${c.transactionId}`}>REFRESH 🔄️</Button>,
       ],
     })
-  } 
+  }
+})
 
 app.frame('/challenge/random', async(c) => {
   const { frameData } = c;
@@ -242,9 +243,7 @@ const challengeFrame = async(
   if(!gameInfo) {
     return c.res({
       title,
-      image: <div>
-        <p>NOT FOUND</p>
-      </div>,
+      image: 'https://i.imgur.com/R0qW9mo.png',
       imageAspectRatio: '1:1',
       intents: [<Button action="/">Back</Button>],
     })
@@ -254,18 +253,13 @@ const challengeFrame = async(
 
   return c.res({
     title,
-    image: <div>
-      <p>FOUND CHALLENGE!</p>
-      <p>{gameName}</p>
-    </div>,
+    image: 'https://i.imgur.com/Izd0SLP.png',
     imageAspectRatio: '1:1',
     intents: [
       <Button action='/'>BATER</Button>
     ]
   })
 }
-
-})
 
 app.transaction('/mint', (c) => {
   const mintCost  = '0.0001'; 
