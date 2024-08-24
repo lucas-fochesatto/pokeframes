@@ -1,0 +1,4 @@
+.cartesi
+.yarn
+/dist
+/node_modules
