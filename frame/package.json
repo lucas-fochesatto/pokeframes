@@ -7,10 +7,12 @@
   },
   "dependencies": {
     "@hono/node-server": "latest",
+    "dotenv": "^16.4.5",
     "frog": "latest",
     "hono": "^4"
   },
   "devDependencies": {
+    "@types/node": "^22.5.0",
     "typescript": "latest"
   }
 }

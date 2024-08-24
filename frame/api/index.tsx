@@ -1,18 +1,29 @@
 import { serveStatic } from '@hono/node-server/serve-static'
-import { Button, Frog, parseEther } from 'frog'
+import { Button, FrameContext, Frog, parseEther } from 'frog'
 import { getFarcasterUserInfo } from '../lib/neynar.js';
 import { devtools } from 'frog/dev'
 import { handle } from 'frog/vercel';
 import { serve } from '@hono/node-server';
+import { BACKEND_URL } from '../constant/config.js';
+import { BlankInput } from 'hono/types';
+import { getGameInfoByGameId } from '../lib/database.js';
 
 const title = 'cartesi-frame';
 
-export const app = new Frog({
+type State = {
+  verifiedAddresses?: `0x${string}`[];
+  pfp_url: any;
+  userName: any;
+}
+
+export const app = new Frog<{State: State}>({
   title,
   assetsPath: '/',
   basePath: '/api',
   initialState: {
     verifiedAddresses: [],
+    pfp_url: '',
+    userName: '',
   },
 })
 
@@ -31,7 +42,7 @@ app.frame('/', (c) => {
 
 app.frame('/verify', async (c) => {
   const fid = c.frameData?.fid;
-  if (fid) {
+  if (fid) {  
     const { verifiedAddresses } = await getFarcasterUserInfo(fid);
     if (!verifiedAddresses || verifiedAddresses.length === 0) {
       return c.res({
@@ -68,7 +79,7 @@ app.frame('/online', (c) => {
     image: 'https://i.imgur.com/2tRZhkQ.jpeg',
     imageAspectRatio: '1:1',
     intents: [
-    <Button action={`/`}>RESET</Button>,
+    <Button action={`/challenge/1`}>SEARCH</Button>,
     ],
   })
 })
@@ -89,7 +100,6 @@ app.frame('/pokedex/:playeraddress/:id', (c) => {
   const playerAddress = String(c.req.param('playeraddress')) || "0x";
   const totalPlayerPokemons = 10;
   
-
   function boundIndex (index: number) {
     return ((index % totalPlayerPokemons) + totalPlayerPokemons) % totalPlayerPokemons
   }
@@ -119,6 +129,79 @@ app.frame('/scores', (c) => {
   })
 })
 
+app.frame('/challenge/random', async(c) => {
+  const { frameData } = c;
+  const fid = frameData?.fid;
+  const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
+
+  if (!verifiedAddresses || verifiedAddresses.length === 0) {
+    return c.res({
+      title,
+      image: '/images/verify.png',
+      imageAspectRatio: '1:1',
+      intents: [<Button action="/">Back</Button>],
+    });
+  }
+
+  const address = verifiedAddresses[0] as `0x${string}`;
+
+  const response = await fetch(
+    `${BACKEND_URL!}/war/getRandomChallengableGame?exept_maker=${address}`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    },
+  );
+  const game = await response.json();
+  if (!game.game_id) return c.error({ message: 'No game found' });
+
+  return await challengeFrame(c, game.game_id);
+})
+
+app.frame('/challenge/:gameId', async (c) => {
+  const gameId = c.req.param('gameId') as string;
+  return await challengeFrame(c, gameId);
+});
+
+const challengeFrame = async(
+  c: FrameContext<
+    {
+      State: State;
+    },
+    '/challenge/:gameId' | '/challenge/random',
+    BlankInput
+  >, 
+  gameId: string
+) => {
+  let gameInfo = await getGameInfoByGameId(gameId);
+
+  if(!gameInfo) {
+    return c.res({
+      title,
+      image: <div>
+        <p>NOT FOUND</p>
+      </div>,
+      imageAspectRatio: '1:1',
+      intents: [<Button action="/">Back</Button>],
+    })
+  }
+
+  const gameName = gameInfo[0].name;
+
+  return c.res({
+    title,
+    image: <div>
+      <p>FOUND CHALLENGE!</p>
+      <p>{gameName}</p>
+    </div>,
+    imageAspectRatio: '1:1',
+    intents: [
+      <Button action='/'>BATER</Button>
+    ]
+  })
+}
 
 app.transaction('/send-ether', (c) => {
   const { inputText } = c
