@@ -1,27 +1,53 @@
 import createClient from "openapi-fetch";
 import { components, paths } from "./schema";
+
+import { fromHex, toHex } from 'viem'
 import { fromHex, toHex, createPublicClient, http, parseEther } from 'viem'
 import { sepolia } from 'viem/chains'
+import { readFileSync } from 'fs';
 
 // Importing and initializing DB
 const { Database } = require("node-sqlite3-wasm");
 
 import { InspectPayload, Product, ProductPayload } from './interfaces';
 
+import { pokemons } from "../pokemons/allpokemons.js";
+
 const rollup_server = process.env.ROLLUP_HTTP_SERVER_URL;
 
 console.log('Will start SQLITE Database');
-
+async function fetchJsonFromIpfs(url: string): Promise<string> {
+  try {
+    const gatewayUrl = `${url}`;
+    const response = await fetch(gatewayUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch JSON from IPFS: ${response.statusText}`);
+    }
+    const jsonString = await response.text();
+    return jsonString;
+  } catch (error) {
+    console.error('Error fetching JSON from IPFS:', error);
+    throw error;
+  }
+}
 // Instatiate Database
 const db = new Database('/tmp/database.db');
 try {
-  db.run('CREATE TABLE IF NOT EXISTS products (id INTEGER PRIMARY KEY, name TEXT)');
+
+  db.run('CREATE TABLE IF NOT EXISTS pokemons (id INTEGER PRIMARY KEY, name TEXT, type TEXT, hp INTEGER, attack INTEGER, defense INTEGER, speed INTEGER, atk1 TEXT, atk2 TEXT, atk3 TEXT, image TEXT)');
+  db.run('CREATE TABLE IF NOT EXISTS players (playerid TEXT, inventory TEXT)');
+
   db.run('CREATE TABLE IF NOT EXISTS hashes (hash TEXT PRIMARY KEY)');
   db.run('CREATE TABLE IF NOT EXISTS battles (id TEXT PRIMARY KEY, maker TEXT, taker TEXT)');
 } catch (e) {
   console.log('ERROR initializing databas: ', e)
 }
 console.log('Backend Database initialized');
+
+
+for (let i = 0; i < 25; i++) {
+  db.run('INSERT INTO pokemons VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)', [Number(pokemons[i]!.id), pokemons[i]!.name, pokemons[i]!.type, pokemons[i]!.hp, pokemons[i]!.attack, pokemons[i]!.defense, pokemons[i]!.speed, pokemons[i]!.atk1, pokemons[i]!.atk2, pokemons[i]!.atk3, pokemons[i]!.image]);
+}
 
 const publicClient = createPublicClient({
   chain: sepolia,
@@ -116,7 +142,7 @@ const handleInspect: InspectRequestHandler = async (data) => {
   }
 
   try {
-    const listOfProducts = await db.all(`SELECT * FROM products`);
+    const listOfProducts = await db.all(`SELECT * FROM pokemons`);
     const payload = toHex(JSON.stringify(listOfProducts));
     const inspect_req = await fetch(rollup_server + '/report', {
       method: 'POST',

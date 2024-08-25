@@ -1,0 +1,24 @@
+{ 
+    "id": "4",
+
+    "name": "CHARMANDER",
+
+    "type": "FIRE",
+
+    "hp": 39,
+
+    "attack": 52,
+
+    "defense": 43,
+
+    "speed": 65,
+
+    "atk1": "GROWL,NORMAL",
+
+    "atk2": "SCRATCH,NORMAL",
+
+    "atk3": "EMBER,FIRE",
+
+    "image": "https://crimson-peaceful-narwhal-967.mypinata.cloud/ipfs/QmS2BW1e9xQBcgS3174N2Acptv5jZzvaVxJhCFT1qrA5VD"
+
+}
