@@ -62,7 +62,7 @@ app.frame('/verify', async (c) => {
   }
   return c.res({
     title,
-    image: 'https://i.imgur.com/2tRZhkQ.jpeg',
+    image: '/ok.jpg',
     imageAspectRatio: '1:1',
     intents: [
     <Button action={`/battle`}>BATTLE</Button>,
