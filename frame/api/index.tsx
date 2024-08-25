@@ -103,7 +103,7 @@ app.frame('/pokemons/:pokemonId/:index', async (c) => {
     image: `/pokeball.gif`,
     imageAspectRatio: '1:1',
     intents: [
-    <Button.Transaction action={`/battle/handle`} target='/mint'>✅</Button.Transaction>,
+    <Button.Transaction action={`/battle/handle/0/0x`} target='/mint'>✅</Button.Transaction>,
     <Button action={`/`}>BACK 🏠</Button>,
     ],
   })
@@ -134,43 +134,74 @@ app.frame('/pokemons/:pokemonId/:index', async (c) => {
 }
 })
 
-app.frame('/battle/handle', async (c) => {
+app.frame('/battle/handle/:gameId/:txid', async (c) => {
   const { frameData } = c;
   const fid = frameData?.fid;
   const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
   const playerAddress = verifiedAddresses[0] as `0x${string}`;
+  let gameId = c.req.param('gameId') as `0x${string}`;
+  const txId = c.req.param('txid');
+  if (c.transactionId === undefined && txId === undefined) return c.error({ message: 'No txId' });
+  let transactionReceipt;
+
+  if (txId !== '0x') {
+    c.transactionId = txId as `0x${string}`;
+  
+    try {
+      transactionReceipt = await publicClient.getTransactionReceipt({
+        hash: txId as `0x${string}`,
+      });
+      if (transactionReceipt && transactionReceipt.status == 'reverted') {
+        return c.error({ message: 'Transaction failed' });
+      }
+    } catch (error) {
+      console.log(error)
+    }
+  }
+  if (transactionReceipt?.status === 'success') {
+  gameId = txId as `0x${string}` + playerAddress;   
+  return c.res({
+    title,
+    image: `/ok.jpg`,
+    imageAspectRatio: '1:1',
+    intents: [
+    <Button.Link href={`${SHARE_INTENT}${SHARE_TEXT}${SHARE_EMBEDS}${FRAME_URL}/battle/handle/${gameId}/${c.transactionId}`}>SHARE</Button.Link>,
+    <Button action={`/battle/${gameId}`}>REFRESH</Button>,
+    ],
+  })
+  }
+  gameId = '0x';
   return c.res({
     title,
     image: `/1.png`,
     imageAspectRatio: '1:1',
     intents: [
-    <Button.Link href={`${SHARE_INTENT}${SHARE_TEXT}${SHARE_EMBEDS}${FRAME_URL}/battle/handle`}>SHARE</Button.Link>,
-    <Button action={`/battle/handle`}>REFRESH</Button>,
+    <Button action={`/battle/handle/${gameId}/${c.transactionId}`}>REFRESH</Button>,
     ],
   })
 })
 
-app.frame('/battle/random', async(c) => {
-  const { frameData } = c;
-  const fid = frameData?.fid;
-  const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
+// app.frame('/battle/random', async(c) => {
+//   const { frameData } = c;
+//   const fid = frameData?.fid;
+//   const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
 
-  const address = verifiedAddresses[0] as `0x${string}`;
+//   const address = verifiedAddresses[0] as `0x${string}`;
 
-  const response = await fetch(
-    `${BACKEND_URL!}/war/getRandomChallengableGame?exept_maker=${address}`,
-    {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    },
-  );
-  const game = await response.json();
-  if (!game.game_id) return c.error({ message: 'No game found' });
+//   const response = await fetch(
+//     `${BACKEND_URL!}/war/getRandomChallengableGame?exept_maker=${address}`,
+//     {
+//       method: 'GET',
+//       headers: {
+//         'Content-Type': 'application/json',
+//       },
+//     },
+//   );
+//   const game = await response.json();
+//   if (!game.game_id) return c.error({ message: 'No game found' });
 
-  return await battleFrame(c, game.game_id);
-})
+//   return await battleFrame(c, game.game_id);
+// })
 
 app.frame('/battle/:gameId', async (c) => {
   const gameId = c.req.param('gameId') as string;
@@ -187,18 +218,18 @@ const battleFrame = async(
   >, 
   gameId: string
 ) => {
-  let gameInfo = await getGameInfoByGameId(gameId);
+//   let gameInfo = await getGameInfoByGameId(gameId);
 
-  if(!gameInfo) {
-    return c.res({
-      title,
-      image: 'https://i.imgur.com/R0qW9mo.png',
-      imageAspectRatio: '1:1',
-      intents: [<Button action="/">BACK</Button>],
-    })
-  }
+//   if(!gameInfo) {
+//     return c.res({
+//       title,
+//       image: 'https://i.imgur.com/R0qW9mo.png',
+//       imageAspectRatio: '1:1',
+//       intents: [<Button action="/">BACK</Button>],
+//     })
+//   }
 
-  const gameName = gameInfo[0].name;
+//   const gameName = gameInfo[0].name;
 
   return c.res({
     title,
@@ -209,6 +240,7 @@ const battleFrame = async(
     ]
   })
 }
+
 
 app.frame('/pokedex/:id', async (c) => {
   const { frameData } = c;
