@@ -8,8 +8,8 @@ import { serve } from '@hono/node-server';
 import { BACKEND_URL } from '../constant/config.js';
 import { BlankInput } from 'hono/types';
 import { getGameInfoByGameId } from '../lib/database.js';
-
-const title = 'cartesi-frame';
+import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title} from '../constant/config.js';
+import { boundIndex } from '../lib/utils/boundIndex.js';
 
 type State = {
   verifiedAddresses?: `0x${string}`[];
@@ -62,75 +62,170 @@ app.frame('/verify', async (c) => {
   }
   return c.res({
     title,
-    image: 'https://i.imgur.com/2tRZhkQ.jpeg',
+    image: '/ok.jpg',
     imageAspectRatio: '1:1',
     intents: [
-    <Button action={`/online/0x`}>ONLINE</Button>,
-    <Button action={`/solo`}>SOLO</Button>,
-    <Button action={`/pokedex/0x/0`}>POKEDEX</Button>,
+    <Button action={`/battle`}>BATTLE</Button>,
+    <Button action={`/pokedex/0`}>POKEDEX</Button>,
     <Button action={`/scores`}>SCORES</Button>,
     ],
   })
 })
 
-
-app.frame('/online/:playerId', (c) => {
-  const playerAddress = c.req.param('playerId');
+app.frame('/battle', async (c) => {
+  // const { frameData } = c;
+  // const fid = frameData?.fid;
+  // const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
+  // const playerAddress = verifiedAddresses[0] as `0x${string}`;
   return c.res({
     title,
-    image: 'https://i.imgur.com/2tRZhkQ.jpeg',
+    image: '/battle.png',
     imageAspectRatio: '1:1',
     intents: [
-    <Button action={`/pokemons/${playerAddress}/0/0`}>POKEMONS ➡️</Button>,
-    <Button action={`/verify`}>BACK ⬅️</Button>,
+    <Button action={`/pokemons/0/0`}>POKEMONS</Button>,
+    <Button action={`/verify`}>BACK</Button>,
     ],
   })
 })
 
-app.frame('/pokemons/:playerId/:pokemonId/:index', (c) => {
-  const playerAddress = c.req.param('playerId');
-  const pokemonId = c.req.param('pokemonId');
-  const index = c.req.param('index');
+app.frame('/pokemons/:pokemonId/:index', async (c) => {
+  const { frameData } = c;
+  const fid = frameData?.fid;
+  const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
+  const playerAddress = verifiedAddresses[0] as `0x${string}`;
+  const pokemonId = Number(c.req.param('pokemonId')) || 0;
+  const playerPokemons = ['1', '2'];
+  const totalPlayerPokemons = playerPokemons.length;
+  const index = Number(c.req.param('index')); 
+  if (index == 3) {
   return c.res({
     title,
-    image: `/${pokemonId}.png`,
+    image: `/pokeball.gif`,
     imageAspectRatio: '1:1',
     intents: [
-    <Button action={`/pokemons/${playerAddress}/${pokemonId}/0`}>⬅️</Button>,
-    <Button action={`/pokemons/${playerAddress}/${pokemonId}/0`}>➡️</Button>,
-    <Button action={`/pokemons/${playerAddress}/${pokemonId}/0`}>✅</Button>,
+    <Button.Transaction action={`/battle/handle`} target='/mint'>✅</Button.Transaction>,
     <Button action={`/`}>BACK 🏠</Button>,
     ],
   })
-})
-
-app.frame('/solo', (c) => {
+} if (pokemonId == 0) {
   return c.res({
     title,
-    image: 'https://i.imgur.com/2tRZhkQ.jpeg',
+    image: `/${playerPokemons[pokemonId]}.png`,
     imageAspectRatio: '1:1',
     intents: [
-    <Button action={`/`}>RESET</Button>,
+    <Button action={`/pokemons/${boundIndex(pokemonId - 1, totalPlayerPokemons)}/${index}`}>⬅️</Button>,
+    <Button action={`/pokemons/${boundIndex(pokemonId + 1, totalPlayerPokemons)}/${index}`}>➡️</Button>,
+    <Button action={`/pokemons/${boundIndex(pokemonId, totalPlayerPokemons)}/${index+1}`}>✅</Button>,
+    <Button action={`/`}>BACK 🏠</Button>,
+    ],
+  })
+} else {
+  return c.res({
+    title,
+    image: `/${playerPokemons[pokemonId]}.png`,
+    imageAspectRatio: '1:1',
+    intents: [
+    <Button action={`/pokemons/${boundIndex(pokemonId - 1, totalPlayerPokemons)}/${index}`}>⬅️</Button>,
+    <Button action={`/pokemons/${boundIndex(pokemonId + 1, totalPlayerPokemons)}/${index}`}>➡️</Button>,
+    <Button action={`/pokemons/${boundIndex(pokemonId, totalPlayerPokemons)}/${index+1}`}>✅</Button>,
+    <Button action={`/`}>BACK 🏠</Button>,
+    ],
+  })
+}
+})
+
+app.frame('/battle/handle', async (c) => {
+  const { frameData } = c;
+  const fid = frameData?.fid;
+  const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
+  const playerAddress = verifiedAddresses[0] as `0x${string}`;
+  return c.res({
+    title,
+    image: `/1.png`,
+    imageAspectRatio: '1:1',
+    intents: [
+    <Button.Link href={`${SHARE_INTENT}${SHARE_TEXT}${SHARE_EMBEDS}${FRAME_URL}/battle/handle`}>SHARE</Button.Link>,
+    <Button action={`/battle/handle`}>REFRESH</Button>,
     ],
   })
 })
 
-app.frame('/pokedex/:playeraddress/:id', (c) => {
-  const id = Number(c.req.param('id')) || 0;
-  const playerAddress = String(c.req.param('playeraddress')) || "0x";
-  const totalPlayerPokemons = 2;
-  
-  function boundIndex (index: number) {
-    return ((index % totalPlayerPokemons) + totalPlayerPokemons) % totalPlayerPokemons
+app.frame('/battle/random', async(c) => {
+  const { frameData } = c;
+  const fid = frameData?.fid;
+  const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
+
+  const address = verifiedAddresses[0] as `0x${string}`;
+
+  const response = await fetch(
+    `${BACKEND_URL!}/war/getRandomChallengableGame?exept_maker=${address}`,
+    {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    },
+  );
+  const game = await response.json();
+  if (!game.game_id) return c.error({ message: 'No game found' });
+
+  return await battleFrame(c, game.game_id);
+})
+
+app.frame('/battle/:gameId', async (c) => {
+  const gameId = c.req.param('gameId') as string;
+  return await battleFrame(c, gameId);
+});
+
+const battleFrame = async(
+  c: FrameContext<
+    {
+      State: State;
+    },
+    '/battle/:gameId' | '/battle/random',
+    BlankInput
+  >, 
+  gameId: string
+) => {
+  let gameInfo = await getGameInfoByGameId(gameId);
+
+  if(!gameInfo) {
+    return c.res({
+      title,
+      image: 'https://i.imgur.com/R0qW9mo.png',
+      imageAspectRatio: '1:1',
+      intents: [<Button action="/">BACK</Button>],
+    })
   }
+
+  const gameName = gameInfo[0].name;
 
   return c.res({
     title,
-    image: `/${boundIndex(id)+1}.png`,
+    image: 'https://i.imgur.com/Izd0SLP.png',
     imageAspectRatio: '1:1',
     intents: [
-    <Button action={`/pokedex/${playerAddress}/${boundIndex(id-1)}`}>⬅️</Button>,
-    <Button action={`/pokedex/${playerAddress}/${boundIndex(id+1)}`}>➡️</Button>,
+      <Button action='/'>BACK</Button>
+    ]
+  })
+}
+
+app.frame('/pokedex/:id', async (c) => {
+  const { frameData } = c;
+  const fid = frameData?.fid;
+  const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
+  const playerAddress = verifiedAddresses[0] as `0x${string}`;
+  const playerPokemons = ['1', '2'];
+  const id = Number(c.req.param('id')) || 0;
+  const totalPlayerPokemons = playerPokemons.length;
+
+  return c.res({
+    title,
+    image: `/${playerPokemons[boundIndex(id+1, totalPlayerPokemons)]}.png`,
+    imageAspectRatio: '1:1',
+    intents: [
+    <Button action={`/pokedex/${boundIndex(id-1, totalPlayerPokemons)}`}>⬅️</Button>,
+    <Button action={`/pokedex/${boundIndex(id+1, totalPlayerPokemons)}`}>➡️</Button>,
     <Button action={`/verify`}>OK ✅</Button>,
     <Button action={`/new`}>NEW 🎲</Button>,
     ],
@@ -141,7 +236,7 @@ app.frame('/new', (c) => {
   const pokemonId = 2;
   return c.res({
     title,
-    image: 'https://i.imgur.com/2tRZhkQ.jpeg',
+    image: '/gacha.jpg',
     imageAspectRatio: '1:1',
     intents: [
     <Button.Transaction action={`/loading/${pokemonId}/0x`} target={`/mint`}>CAPTURE 🍀</Button.Transaction>,
@@ -158,19 +253,20 @@ app.frame('/loading/:pokemonId/:txid', async (c) => {
 
   if (txId !== '0x') {
     c.transactionId = txId as `0x${string}`;
-  }
-  try {
-    transactionReceipt = await publicClient.getTransactionReceipt({
-      hash: txId as `0x${string}`,
-    });
-    if (transactionReceipt && transactionReceipt.status == 'reverted') {
-      return c.error({ message: 'Transaction failed' });
+  
+    try {
+      transactionReceipt = await publicClient.getTransactionReceipt({
+        hash: txId as `0x${string}`,
+      });
+      if (transactionReceipt && transactionReceipt.status == 'reverted') {
+        return c.error({ message: 'Transaction failed' });
+      }
+    } catch (error) {
+      console.log(error)
     }
-  } catch (error) {
-    console.log(error)
   }
-
   if (transactionReceipt?.status === 'success') {
+    // add a function to create a new pokemon for the user in our backend
     return c.res({
       title,
       image: `/pokeball.gif`,
@@ -192,82 +288,25 @@ app.frame('/loading/:pokemonId/:txid', async (c) => {
   }
 })
 
-app.frame('/challenge/random', async(c) => {
-  const { frameData } = c;
-  const fid = frameData?.fid;
-  const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
-
-  if (!verifiedAddresses || verifiedAddresses.length === 0) {
-    return c.res({
-      title,
-      image: '/images/verify.png',
-      imageAspectRatio: '1:1',
-      intents: [<Button action="/">Back</Button>],
-    });
-  }
-
-  const address = verifiedAddresses[0] as `0x${string}`;
-
-  const response = await fetch(
-    `${BACKEND_URL!}/war/getRandomChallengableGame?exept_maker=${address}`,
-    {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    },
-  );
-  const game = await response.json();
-  if (!game.game_id) return c.error({ message: 'No game found' });
-
-  return await challengeFrame(c, game.game_id);
+//// @todo ////
+// -> mint a NFT on the mainnet for the appContract address 
+// -> associate the user to the pokemon in our database (cartesi) 
+// -> associate ownership to the user when he withdraws his NFT
+app.transaction('/mint', (c) => {
+  const mintCost  = '0.000777'; 
+  return c.send({
+    chainId: 'eip155:11155111',
+    to: '0x02f37D3C000Fb5D2A824a3dc3f1a29fa5530A8D4',
+    value: parseEther(mintCost as string),
+  })
 })
 
-app.frame('/challenge/:gameId', async (c) => {
-  const gameId = c.req.param('gameId') as string;
-  return await challengeFrame(c, gameId);
-});
-
-const challengeFrame = async(
-  c: FrameContext<
-    {
-      State: State;
-    },
-    '/challenge/:gameId' | '/challenge/random',
-    BlankInput
-  >, 
-  gameId: string
-) => {
-  let gameInfo = await getGameInfoByGameId(gameId);
-
-  if(!gameInfo) {
-    return c.res({
-      title,
-      image: 'https://i.imgur.com/R0qW9mo.png',
-      imageAspectRatio: '1:1',
-      intents: [<Button action="/">Back</Button>],
-    })
-  }
-
-  const gameName = gameInfo[0].name;
-
-  return c.res({
-    title,
-    image: 'https://i.imgur.com/Izd0SLP.png',
-    imageAspectRatio: '1:1',
-    intents: [
-      <Button action='/'>BATER</Button>
-    ]
-  })
-}
-
-app.transaction('/mint', (c) => {
-  const mintCost  = '0.0001'; 
-  // Send transaction response.
+app.transaction('/create-battle', (c) => {
+  const cost = '0.000777';
   return c.send({
-    chainId: 'eip155:11155111', //sepolia
-    to: '0xaBf8cb2F85a1f423f26296aCa3c2E36c882C5f5D',
-    value: parseEther(mintCost as string),
+    chainId: 'eip155:11155111',
+    to: '0x02f37D3C000Fb5D2A824a3dc3f1a29fa5530A8D4',
+    value: parseEther(cost as string),
   })
 })
 
@@ -278,11 +317,25 @@ app.frame('/gotcha/:pokemonId', (c) => {
     image: `/${pokemonId}.png`,
     imageAspectRatio: '1:1',
     intents: [
-    <Button action={`/`}>RESET</Button>,
+    <Button.Link href={`${SHARE_INTENT}${SHARE_GACHA}${SHARE_EMBEDS}${FRAME_URL}/share/${pokemonId}`}>SHARE</Button.Link>,
+    <Button action={`/`}>HOME 🏠</Button>,
     ],
   })
 })
 
+app.frame('/share/:pokemonId', (c) => {
+  const pokemonId = c.req.param('pokemonId');
+  return c.res({
+    title,
+    image: `/${pokemonId}.png`,
+    imageAspectRatio: '1:1',
+    intents: [
+    <Button action={`/`}>TRY IT OUT 🏠</Button>,
+    ],
+  })
+})
+
+//// @todo ////
 app.frame('/scores', (c) => {
   return c.res({
     title,
@@ -293,6 +346,8 @@ app.frame('/scores', (c) => {
     ],
   })
 })
+
+
 if (process.env.NODE_ENV !== 'production') {
   devtools(app, { serveStatic });
 }
