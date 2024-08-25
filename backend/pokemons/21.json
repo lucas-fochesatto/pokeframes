@@ -1,0 +1,24 @@
+{ 
+    "id": "21",
+
+    "name": "SPEAROW",
+
+    "type": "NORMAL,FLYING",
+
+    "hp": 40,
+
+    "attack": 60,
+
+    "defense": 30,
+
+    "speed": 70,
+
+    "atk1": "GROWL,NORMAL",
+
+    "atk2": "PECK,FLYING",
+
+    "atk3": "LEER,NORMAL",
+
+    "image": "https://crimson-peaceful-narwhal-967.mypinata.cloud/ipfs/QmZo3hBBfrAyLGo7GEGYDwM92opwhg44GJVx5FcGjLNjqo"
+
+}

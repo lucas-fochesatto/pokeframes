@@ -1,0 +1,24 @@
+{ 
+    "id": "16",
+
+    "name": "PIDGEY",
+
+    "type": "NORMAL,FLYING",
+
+    "hp": 40,
+
+    "attack": 45,
+
+    "defense": 40,
+
+    "speed": 56,
+
+    "atk1": "TACKLE,NORMAL",
+
+    "atk2": "SAND ATTACK,GROUND",
+
+    "atk3": "GUST,FLYING",
+
+    "image": "https://crimson-peaceful-narwhal-967.mypinata.cloud/ipfs/Qmew7vEQwRUz7uUQXiKg8ab1pUKm6wK23cacj3GeTDC5Zr"
+
+}

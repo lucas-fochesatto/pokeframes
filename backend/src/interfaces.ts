@@ -1,10 +1,21 @@
-export interface Product {
-    id: number;
-    name: string;
+export interface Player {
+    playerId: number;
+    wallet: string;
+    inventory: string;
+    battles: Battle[];
 }
 
-export interface ProductPayload {
+export interface Battle {
     id: number;
-    name: string;
-    action: 'add' | 'delete';
-} 
+    maker: string;
+    taker: string;
+    status: 'pending' | 'running' | 'finished';
+}
+
+export interface InspectPayload {
+    action: 'mint-pokemon' | 'create-battle' | 'send-attack' | 'get-user-pokemons';
+    hash?: `0x${string}`;
+    battleId?: string;
+    pokemonId?: number;
+    senderId?: number;
+}

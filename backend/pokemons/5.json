@@ -1,0 +1,24 @@
+{ 
+    "id": "5",
+
+    "name": "CHARMELEON",
+
+    "type": "FIRE",
+
+    "hp": 58,
+
+    "attack": 64,
+
+    "defense": 58,
+
+    "speed": 80,
+
+    "atk1": "EMBER,FIRE",
+
+    "atk2": "GROWL,NORMAL",
+
+    "atk3": "SCRATCH,NORMAL",
+
+    "image": "https://crimson-peaceful-narwhal-967.mypinata.cloud/ipfs/QmbmNp4Vd8kco2bcxuhqsFFP6N3soUMBTnxQAyRddHfd9M"
+
+}

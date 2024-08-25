@@ -7,7 +7,7 @@ import { handle } from 'frog/vercel';
 import { serve } from '@hono/node-server';
 import { BACKEND_URL } from '../constant/config.js';
 import { BlankInput } from 'hono/types';
-import { getGameInfoByGameId } from '../lib/database.js';
+import { assignPokemonToUser, getGameInfoByGameId } from '../lib/database.js';
 import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title} from '../constant/config.js';
 import { boundIndex } from '../lib/utils/boundIndex.js';
 
@@ -271,53 +271,57 @@ app.frame('/new', (c) => {
     image: '/gacha.jpg',
     imageAspectRatio: '1:1',
     intents: [
-    <Button.Transaction action={`/loading/${pokemonId}/0x`} target={`/mint`}>CAPTURE 🍀</Button.Transaction>,
+    <Button.Transaction action={`/loading/${pokemonId}`} target={`/mint`}>CAPTURE 🍀</Button.Transaction>,
     <Button action={`/`}>BACK</Button>,
     ],
   })
 })
 
-app.frame('/loading/:pokemonId/:txid', async (c) => {
-  const txId = c.req.param('txid');
+app.frame('/loading/:pokemonId', async (c) => {
   const pokemonId = c.req.param('pokemonId');
-  let transactionReceipt;
-  if (c.transactionId === undefined && txId === undefined) return c.error({ message: 'No txId' });
+
+  const txId = c.transactionId ? c.transactionId : '0x';
+  const fid = c.frameData?.fid;
 
   if (txId !== '0x') {
-    c.transactionId = txId as `0x${string}`;
-  
     try {
-      transactionReceipt = await publicClient.getTransactionReceipt({
+      const transactionReceipt = await publicClient.waitForTransactionReceipt({
         hash: txId as `0x${string}`,
       });
+
+      console.log(transactionReceipt);
+
       if (transactionReceipt && transactionReceipt.status == 'reverted') {
         return c.error({ message: 'Transaction failed' });
+      }
+
+      if (transactionReceipt?.status === 'success') {
+        // add a function to create a new pokemon for the user in our backend
+        const data = await assignPokemonToUser(fid!, txId as `0x${string}`, Number(pokemonId))
+        console.log(data);
+
+        return c.res({
+          title,
+          image: `/pokeball.gif`,
+          imageAspectRatio: '1:1',
+          intents: [
+            <Button action={`/gotcha/${pokemonId}`}>CATCH</Button>,
+            <Button action={`/`}>RESET</Button>,
+          ],
+        })
       }
     } catch (error) {
       console.log(error)
     }
   }
-  if (transactionReceipt?.status === 'success') {
-    // add a function to create a new pokemon for the user in our backend
-    return c.res({
-      title,
-      image: `/pokeball.gif`,
-      imageAspectRatio: '1:1',
-      intents: [
-        <Button action={`/gotcha/${pokemonId}`}>CATCH</Button>,
-        <Button action={`/`}>RESET</Button>,
-      ],
-    })
-  } else {
-    return c.res({
-      title,
-      image: `/loading.gif`,
-      imageAspectRatio: '1:1',
-      intents: [
-        <Button action={`/loading/${pokemonId}/${c.transactionId}`}>REFRESH 🔄️</Button>,
-      ],
-    })
-  }
+  return c.res({
+    title,
+    image: `/loading.gif`,
+    imageAspectRatio: '1:1',
+    intents: [
+      <Button action={`/loading/${pokemonId}`}>REFRESH 🔄️</Button>,
+    ],
+  })
 })
 
 //// @todo ////
@@ -330,6 +334,15 @@ app.transaction('/mint', (c) => {
     chainId: 'eip155:11155111',
     to: '0x02f37D3C000Fb5D2A824a3dc3f1a29fa5530A8D4',
     value: parseEther(mintCost as string),
+  })
+})
+
+app.transaction('/create-battle', (c) => {
+  const cost = '0.000777';
+  return c.send({
+    chainId: 'eip155:11155111',
+    to: '0x02f37D3C000Fb5D2A824a3dc3f1a29fa5530A8D4',
+    value: parseEther(cost as string),
   })
 })
 
