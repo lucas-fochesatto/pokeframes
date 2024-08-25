@@ -1,0 +1,24 @@
+{ 
+    "id": "1",
+
+    "name": "BULBASAUR",
+
+    "type": "GRASS,POISON",
+
+    "hp": 45,
+
+    "attack": 49,
+
+    "defense": 49,
+
+    "speed": 45,
+
+    "atk1": "GROWL,NORMAL",
+
+    "atk2": "TACKLE,NORMAL",
+
+    "atk3": "VINE WHIP,GRASS",
+
+    "image": "https://crimson-peaceful-narwhal-967.mypinata.cloud/ipfs/QmRjhk46aGt7rTV4GUio2BcJXhj19EVHmAcN3nAnckr1ad"
+
+}

@@ -1,0 +1,24 @@
+{ 
+    "id": "25",
+
+    "name": "PIKACHU",
+
+    "type": "ELETRIC",
+
+    "hp": 35,
+
+    "attack": 55,
+
+    "defense": 40,
+
+    "speed": 90,
+
+    "atk1": "CHARM,FAIRY",
+
+    "atk2": "GROWL,NORMAL",
+
+    "atk3": "NASTY PLOT,DARK",
+
+    "image": "https://crimson-peaceful-narwhal-967.mypinata.cloud/ipfs/QmTcdK18PbiBvr7PbX6vX3aDVw363pt62AqeESj5bfCsta"
+
+}
