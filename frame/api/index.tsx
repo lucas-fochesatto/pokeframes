@@ -7,7 +7,7 @@ import { handle } from 'frog/vercel';
 import { serve } from '@hono/node-server';
 import { BACKEND_URL } from '../constant/config.js';
 import { BlankInput } from 'hono/types';
-import { assignPokemonToUser, getGameInfoByGameId } from '../lib/database.js';
+import { assignPokemonToUser, getGameInfoByGameId, getPokemonsByPlayerId } from '../lib/database.js';
 import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title} from '../constant/config.js';
 import { boundIndex } from '../lib/utils/boundIndex.js';
 
@@ -236,18 +236,61 @@ const battleFrame = async(
     image: 'https://i.imgur.com/Izd0SLP.png',
     imageAspectRatio: '1:1',
     intents: [
-      <Button action='/'>BACK</Button>
+      <Button action={`/battle/${gameId}/fight`}>FIGHT</Button>,
+      <Button action={`/battle/${gameId}/pokemon`}>POKEMON</Button>,
+      <Button action={`/battle/${gameId}/run`}>RUN</Button>
     ]
   })
 }
 
+app.frame('/battle/:gameId/fight', async (c) => {
+  const gameId = c.req.param('gameId') as string;
+  return c.res({
+    title,
+    image: 'https://i.imgur.com/Izd0SLP.png',
+    imageAspectRatio: '1:1',
+    intents: [
+      <Button action={`/battle/${gameId}`}>1</Button>,
+      <Button action={`/battle/${gameId}`}>2</Button>,
+      <Button action={`/battle/${gameId}`}>3</Button>,
+      <Button action={`/battle/${gameId}`}>↩️</Button>
+    ]
+  })
+});
+
+app.frame('/battle/:gameId/pokemon', async (c) => {
+  const gameId = c.req.param('gameId') as string;
+  return c.res({
+    title,
+    image: 'https://i.imgur.com/Izd0SLP.png',
+    imageAspectRatio: '1:1',
+    intents: [
+      <Button action={`/battle/${gameId}`}>🔄️</Button>,
+      <Button action={`/battle/${gameId}`}>ENEMY 🔎</Button>,
+      <Button action={`/battle/${gameId}`}>↩️</Button>
+    ]
+  })
+});
+
+app.frame('/battle/:gameId/run', async (c) => {
+  const gameId = c.req.param('gameId') as string;
+  return c.res({
+    title,
+    image: '/RUN.png',
+    imageAspectRatio: '1:1',
+    intents: [
+      <Button action={`/battle/${gameId}`}>NO</Button>,
+      <Button action={`/battle/${gameId}`}>YES</Button>,
+    ]
+  })
+});
 
 app.frame('/pokedex/:id', async (c) => {
   const { frameData } = c;
   const fid = frameData?.fid;
   const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
   const playerAddress = verifiedAddresses[0] as `0x${string}`;
-  const playerPokemons = ['1', '2'];
+  const playerPokemons = await getPokemonsByPlayerId(fid!);
   const id = Number(c.req.param('id')) || 0;
   const totalPlayerPokemons = playerPokemons.length;
 
@@ -256,8 +299,8 @@ app.frame('/pokedex/:id', async (c) => {
     image: `/${playerPokemons[boundIndex(id+1, totalPlayerPokemons)]}.png`,
     imageAspectRatio: '1:1',
     intents: [
-    <Button action={`/pokedex/${boundIndex(id-1, totalPlayerPokemons)}`}>⬅️</Button>,
-    <Button action={`/pokedex/${boundIndex(id+1, totalPlayerPokemons)}`}>➡️</Button>,
+    <Button action={`/pokedex/${playerPokemons[boundIndex(id-1, totalPlayerPokemons)]}`}>⬅️</Button>,
+    <Button action={`/pokedex/${playerPokemons[boundIndex(id+1, totalPlayerPokemons)]}`}>➡️</Button>,
     <Button action={`/verify`}>OK ✅</Button>,
     <Button action={`/new`}>NEW 🎲</Button>,
     ],
@@ -265,7 +308,7 @@ app.frame('/pokedex/:id', async (c) => {
 })
 
 app.frame('/new', (c) => {
-  const pokemonId = 2;
+  const pokemonId = 2; //random number
   return c.res({
     title,
     image: '/gacha.jpg',
