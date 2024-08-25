@@ -65,7 +65,7 @@ app.frame('/verify', async (c) => {
     image: 'https://i.imgur.com/2tRZhkQ.jpeg',
     imageAspectRatio: '1:1',
     intents: [
-    <Button action={`/battle`}>battle</Button>,
+    <Button action={`/battle`}>BATTLE</Button>,
     <Button action={`/pokedex/0`}>POKEDEX</Button>,
     <Button action={`/scores`}>SCORES</Button>,
     ],
@@ -93,19 +93,45 @@ app.frame('/pokemons/:pokemonId/:index', async (c) => {
   const fid = frameData?.fid;
   const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
   const playerAddress = verifiedAddresses[0] as `0x${string}`;
-  const pokemonId = Number(c.req.param('pokemonId'));
-  const index = c.req.param('index');
+  const pokemonId = Number(c.req.param('pokemonId')) || 0;
+  const playerPokemons = ['1', '2'];
+  const totalPlayerPokemons = playerPokemons.length;
+  const index = Number(c.req.param('index')); 
+  if (index == 3) {
   return c.res({
     title,
-    image: `/${pokemonId}.png`,
+    image: `/pokeball.gif`,
     imageAspectRatio: '1:1',
     intents: [
-    <Button action={`/pokemons/${boundIndex(pokemonId, 3)}/${index}`}>⬅️</Button>,
-    <Button action={`/pokemons/${boundIndex(pokemonId, 3)}/${index}`}>➡️</Button>,
-    <Button action={`/battle/handle`}>✅</Button>,
+    <Button.Transaction action={`/battle/handle`} target='/mint'>✅</Button.Transaction>,
     <Button action={`/`}>BACK 🏠</Button>,
     ],
   })
+} if (pokemonId == 0) {
+  return c.res({
+    title,
+    image: `/${playerPokemons[pokemonId]}.png`,
+    imageAspectRatio: '1:1',
+    intents: [
+    <Button action={`/pokemons/${boundIndex(pokemonId - 1, totalPlayerPokemons)}/${index}`}>⬅️</Button>,
+    <Button action={`/pokemons/${boundIndex(pokemonId + 1, totalPlayerPokemons)}/${index}`}>➡️</Button>,
+    <Button action={`/pokemons/${boundIndex(pokemonId, totalPlayerPokemons)}/${index+1}`}>✅</Button>,
+    <Button action={`/`}>BACK 🏠</Button>,
+    ],
+  })
+} else {
+  return c.res({
+    title,
+    image: `/${playerPokemons[pokemonId]}.png`,
+    imageAspectRatio: '1:1',
+    intents: [
+    <Button action={`/pokemons/${boundIndex(pokemonId - 1, totalPlayerPokemons)}/${index}`}>⬅️</Button>,
+    <Button action={`/pokemons/${boundIndex(pokemonId + 1, totalPlayerPokemons)}/${index}`}>➡️</Button>,
+    <Button action={`/pokemons/${boundIndex(pokemonId, totalPlayerPokemons)}/${index+1}`}>✅</Button>,
+    <Button action={`/`}>BACK 🏠</Button>,
+    ],
+  })
+}
 })
 
 app.frame('/battle/handle', async (c) => {
@@ -118,7 +144,7 @@ app.frame('/battle/handle', async (c) => {
     image: `/1.png`,
     imageAspectRatio: '1:1',
     intents: [
-      <Button.Link href={`${SHARE_INTENT}${SHARE_TEXT}${SHARE_EMBEDS}${FRAME_URL}/battle/handle`}>SHARE</Button.Link>,
+    <Button.Link href={`${SHARE_INTENT}${SHARE_TEXT}${SHARE_EMBEDS}${FRAME_URL}/battle/handle`}>SHARE</Button.Link>,
     <Button action={`/battle/handle`}>REFRESH</Button>,
     ],
   })
@@ -210,7 +236,7 @@ app.frame('/new', (c) => {
   const pokemonId = 2;
   return c.res({
     title,
-    image: '/pikachu.png',
+    image: '/gacha.jpg',
     imageAspectRatio: '1:1',
     intents: [
     <Button.Transaction action={`/loading/${pokemonId}/0x`} target={`/mint`}>CAPTURE 🍀</Button.Transaction>,
