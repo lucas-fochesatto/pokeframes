@@ -21,7 +21,7 @@ export const assignPokemonToUser = async (senderId: number, hash: `0x${string}`,
   return data;
 }
 
-export const getPokemonsByPlayerId = async (playerId: `0x${string}`) => {
+export const getPokemonsByPlayerId = async (playerId: number) => {
   const payload = toHex(JSON.stringify({ action: 'get-user-pokemons', msgSender: playerId }))
 
   const response = await fetch(`${BACKEND_INSPECT_URL}/${payload}`);
