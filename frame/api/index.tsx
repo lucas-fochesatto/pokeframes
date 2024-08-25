@@ -301,6 +301,15 @@ app.transaction('/mint', (c) => {
   })
 })
 
+app.transaction('/create-battle', (c) => {
+  const cost = '0.000777';
+  return c.send({
+    chainId: 'eip155:11155111',
+    to: '0x02f37D3C000Fb5D2A824a3dc3f1a29fa5530A8D4',
+    value: parseEther(cost as string),
+  })
+})
+
 app.frame('/gotcha/:pokemonId', (c) => {
   const pokemonId = c.req.param('pokemonId');
   return c.res({
