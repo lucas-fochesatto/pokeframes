@@ -62,7 +62,7 @@ app.frame('/verify', async (c) => {
   }
   return c.res({
     title,
-    image: 'https://i.imgur.com/2tRZhkQ.jpeg',
+    image: '/ok.jpg',
     imageAspectRatio: '1:1',
     intents: [
     <Button action={`/battle`}>BATTLE</Button>,
@@ -253,18 +253,18 @@ app.frame('/loading/:pokemonId/:txid', async (c) => {
 
   if (txId !== '0x') {
     c.transactionId = txId as `0x${string}`;
-  }
-  try {
-    transactionReceipt = await publicClient.getTransactionReceipt({
-      hash: txId as `0x${string}`,
-    });
-    if (transactionReceipt && transactionReceipt.status == 'reverted') {
-      return c.error({ message: 'Transaction failed' });
+  
+    try {
+      transactionReceipt = await publicClient.getTransactionReceipt({
+        hash: txId as `0x${string}`,
+      });
+      if (transactionReceipt && transactionReceipt.status == 'reverted') {
+        return c.error({ message: 'Transaction failed' });
+      }
+    } catch (error) {
+      console.log(error)
     }
-  } catch (error) {
-    console.log(error)
   }
-
   if (transactionReceipt?.status === 'success') {
     // add a function to create a new pokemon for the user in our backend
     return c.res({
