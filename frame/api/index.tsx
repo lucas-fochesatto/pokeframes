@@ -1,3 +1,4 @@
+import sharp from 'sharp';
 import { serveStatic } from '@hono/node-server/serve-static'
 import { Button, FrameContext, Frog, parseEther } from 'frog'
 import { getFarcasterUserInfo } from '../lib/neynar.js';
@@ -138,7 +139,7 @@ app.frame('/battle/handle/:gameId/:txid', async (c) => {
   const { frameData } = c;
   const fid = frameData?.fid;
   const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
-  const playerAddress = verifiedAddresses[0] as `0x${string}`;
+  const playerAddress = verifiedAddresses[0] as `0x${string}` || "0xSug0u";
   let gameId = c.req.param('gameId') as `0x${string}`;
   const txId = c.req.param('txid');
   if (c.transactionId === undefined && txId === undefined) return c.error({ message: 'No txId' });
@@ -181,6 +182,7 @@ app.frame('/battle/handle/:gameId/:txid', async (c) => {
   })
 })
 
+
 // app.frame('/battle/random', async(c) => {
 //   const { frameData } = c;
 //   const fid = frameData?.fid;
@@ -203,6 +205,7 @@ app.frame('/battle/handle/:gameId/:txid', async (c) => {
 //   return await battleFrame(c, game.game_id);
 // })
 
+//render pokemon active pokemons and basic stats (hp) 
 app.frame('/battle/:gameId', async (c) => {
   const gameId = c.req.param('gameId') as string;
   return await battleFrame(c, gameId);
@@ -243,8 +246,26 @@ const battleFrame = async(
   })
 }
 
-app.frame('/battle/:gameId/fight', async (c) => {
+// app.frame('/battle/:gameId/fight', async (c) => {
+//   const gameId = c.req.param('gameId') as string;
+//   // const img = await generateGame(`pikachu`,`chupacu`,10,20,30,50);
+//   return c.res({
+//     title,
+//     image: 'https://i.imgur.com/Izd0SLP.png',
+//     imageAspectRatio: '1:1',
+//     intents: [
+//       <Button action={`/battle/${gameId}`}>1</Button>,
+//       <Button action={`/battle/${gameId}`}>2</Button>,
+//       <Button action={`/battle/${gameId}`}>3</Button>,
+//       <Button action={`/battle/${gameId}`}>↩️</Button>
+//     ]
+//   })
+// });
+
+app.frame('/imgtest2', async (c) => {
   const gameId = c.req.param('gameId') as string;
+  const img = await generateGame(`pikachu`,`chupacu`,10,20,30,50);
+  console.log(img);
   return c.res({
     title,
     image: 'https://i.imgur.com/Izd0SLP.png',
@@ -256,6 +277,19 @@ app.frame('/battle/:gameId/fight', async (c) => {
       <Button action={`/battle/${gameId}`}>↩️</Button>
     ]
   })
+});
+
+app.hono.get('/imgtest', async (c) => {
+  // const params = JSON.parse(decodeURIComponent(c.req.param('params')));
+
+  // const { message, quantities, address } = params;
+  console.log("asdadadsa")
+
+  const image = await generateGame(`pikachu`,`chupacu`,10,20,30,50);
+
+  console.log(image)
+
+  return c.newResponse(image, 200, { 'Content-Type': '/png' });
 });
 
 app.frame('/battle/:gameId/pokemon', async (c) => {
@@ -425,6 +459,102 @@ app.frame('/scores', (c) => {
     ],
   })
 })
+
+
+/////////////////////
+function gameComponents() {
+  const components = [];
+  
+  console.log("CP1")
+  const pokemon1 = Buffer.from(`
+    <svg width="202" height="37">
+    <text x="275" y="65" text-anchor="end" font-family="Arial" font-size="40" fill="white">aaaaa</text>
+    </svg>
+    `);
+    
+    const pokemon2 = Buffer.from(`
+    <svg width="202" height="37">
+    <text x="55" y="43" text-anchor="end" font-family="Arial" font-size="40" fill="white">$aaaaa</text>
+    </svg>
+    `);
+    
+    components.push({
+      input: pokemon1,
+      top: 355,
+      left: 275,
+    });
+
+    components.push({
+    input: pokemon2,
+    top: 43,
+    left: 55,
+  });
+  
+  console.log("CP2")
+  const card1 = Buffer.from(`
+    <svg width="300" height="120">
+      <rect x="1.5" y="1.5" width="297" height="117" rx="23.5" fill="#3D3359" stroke="#5A534B" stroke-width="3"/>
+    </svg>
+  `);
+    
+  const card2 = Buffer.from(`
+    <svg width="300" height="120">
+      <rect x="1.5" y="1.5" width="297" height="117" rx="23.5" fill="#3D3359" stroke="#5A534B" stroke-width="3"/>
+    </svg>
+  `);
+    
+  components.push({
+    input: card1,
+    top: 355,
+    left: 40,
+  });
+  
+  components.push({
+    input: card2,
+    top: 45,
+    left: 40,
+  });
+   
+  console.log("dasadasdasdasd")
+  return components;
+  
+}
+
+const generateGame = async (pokemon1Name: string, pokemon2Name: string, totalHP1: number, currentHp1: number, totalHP2: number, currentHp2: number) => {
+  const baseImage = await sharp('./public/pokemon-battle.png').resize(
+    599,
+    599,
+  );
+  
+  const game = gameComponents()
+  
+  const pokemon1Image = await sharp('./public/1.png').resize(
+    200,
+    200,
+  ).png().toBuffer();
+  
+  const pokemon2Image = await sharp('./public/2.png').resize(
+    200,
+    200,
+  ).png().toBuffer();
+  
+  console.log("pkboeprjk")
+
+  // game.push(
+  //   { input: pokemon1Image, top: 355, left: 40 }
+  // )
+  // game.push(
+  //   { input: pokemon2Image, top: 45, left: 372 }
+  // )
+
+  const finalImage = await baseImage
+    .composite(game)
+    .png()
+    .toBuffer();
+
+    console.log(finalImage);
+  return finalImage;
+};
 
 
 if (process.env.NODE_ENV !== 'production') {
