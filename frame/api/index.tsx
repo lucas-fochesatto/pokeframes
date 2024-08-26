@@ -1,3 +1,4 @@
+import sharp from 'sharp';
 import { serveStatic } from '@hono/node-server/serve-static'
 import { Button, FrameContext, Frog, parseEther } from 'frog'
 import { getFarcasterUserInfo } from '../lib/neynar.js';
@@ -7,7 +8,7 @@ import { handle } from 'frog/vercel';
 import { serve } from '@hono/node-server';
 import { BACKEND_URL } from '../constant/config.js';
 import { BlankInput } from 'hono/types';
-import { assignPokemonToUser, getGameInfoByGameId } from '../lib/database.js';
+import { assignPokemonToUser, getGameInfoByGameId, getPokemonsByPlayerId } from '../lib/database.js';
 import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title} from '../constant/config.js';
 import { boundIndex } from '../lib/utils/boundIndex.js';
 import { fromHex } from 'viem';
@@ -34,7 +35,7 @@ app.use('/*', serveStatic({ root: './public' }))
 app.frame('/', (c) => {
   return c.res({
     title,
-    image: '/pikachu.jpg',
+    image: '/pikachu.png',
     imageAspectRatio: '1:1',
     intents: [
     <Button action={`/verify`}>PLAY 🔴</Button>,
@@ -80,7 +81,7 @@ app.frame('/battle', async (c) => {
   // const playerAddress = verifiedAddresses[0] as `0x${string}`;
   return c.res({
     title,
-    image: '/battle.png',
+    image: '/battle2.png',
     imageAspectRatio: '1:1',
     intents: [
     <Button action={`/pokemons/0/0`}>POKEMONS</Button>,
@@ -104,7 +105,7 @@ app.frame('/pokemons/:pokemonId/:index', async (c) => {
     image: `/pokeball.gif`,
     imageAspectRatio: '1:1',
     intents: [
-    <Button.Transaction action={`/battle/handle`} target='/mint'>✅</Button.Transaction>,
+    <Button.Transaction action={`/battle/handle/0/0x`} target='/mint'>✅</Button.Transaction>,
     <Button action={`/`}>BACK 🏠</Button>,
     ],
   })
@@ -135,44 +136,77 @@ app.frame('/pokemons/:pokemonId/:index', async (c) => {
 }
 })
 
-app.frame('/battle/handle', async (c) => {
+app.frame('/battle/handle/:gameId/:txid', async (c) => {
   const { frameData } = c;
   const fid = frameData?.fid;
   const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
-  const playerAddress = verifiedAddresses[0] as `0x${string}`;
+  const playerAddress = verifiedAddresses[0] as `0x${string}` || "0xSug0u";
+  let gameId = c.req.param('gameId') as `0x${string}`;
+  const txId = c.req.param('txid');
+  if (c.transactionId === undefined && txId === undefined) return c.error({ message: 'No txId' });
+  let transactionReceipt;
+
+  if (txId !== '0x') {
+    c.transactionId = txId as `0x${string}`;
+  
+    try {
+      transactionReceipt = await publicClient.getTransactionReceipt({
+        hash: txId as `0x${string}`,
+      });
+      if (transactionReceipt && transactionReceipt.status == 'reverted') {
+        return c.error({ message: 'Transaction failed' });
+      }
+    } catch (error) {
+      console.log(error)
+    }
+  }
+  if (transactionReceipt?.status === 'success') {
+  gameId = txId as `0x${string}` + playerAddress;   
+  return c.res({
+    title,
+    image: `/ok.jpg`,
+    imageAspectRatio: '1:1',
+    intents: [
+    <Button.Link href={`${SHARE_INTENT}${SHARE_TEXT}${SHARE_EMBEDS}${FRAME_URL}/battle/handle/${gameId}/${c.transactionId}`}>SHARE</Button.Link>,
+    <Button action={`/battle/${gameId}`}>REFRESH</Button>,
+    ],
+  })
+  }
+  gameId = '0x';
   return c.res({
     title,
     image: `/1.png`,
     imageAspectRatio: '1:1',
     intents: [
-    <Button.Link href={`${SHARE_INTENT}${SHARE_TEXT}${SHARE_EMBEDS}${FRAME_URL}/battle/handle`}>SHARE</Button.Link>,
-    <Button action={`/battle/handle`}>REFRESH</Button>,
+    <Button action={`/battle/handle/${gameId}/${c.transactionId}`}>REFRESH</Button>,
     ],
   })
 })
 
-app.frame('/battle/random', async(c) => {
-  const { frameData } = c;
-  const fid = frameData?.fid;
-  const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
 
-  const address = verifiedAddresses[0] as `0x${string}`;
+// app.frame('/battle/random', async(c) => {
+//   const { frameData } = c;
+//   const fid = frameData?.fid;
+//   const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
 
-  const response = await fetch(
-    `${BACKEND_URL!}/war/getRandomChallengableGame?exept_maker=${address}`,
-    {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    },
-  );
-  const game = await response.json();
-  if (!game.game_id) return c.error({ message: 'No game found' });
+//   const address = verifiedAddresses[0] as `0x${string}`;
 
-  return await battleFrame(c, game.game_id);
-})
+//   const response = await fetch(
+//     `${BACKEND_URL!}/war/getRandomChallengableGame?exept_maker=${address}`,
+//     {
+//       method: 'GET',
+//       headers: {
+//         'Content-Type': 'application/json',
+//       },
+//     },
+//   );
+//   const game = await response.json();
+//   if (!game.game_id) return c.error({ message: 'No game found' });
 
+//   return await battleFrame(c, game.game_id);
+// })
+
+//render pokemon active pokemons and basic stats (hp) 
 app.frame('/battle/:gameId', async (c) => {
   const gameId = c.req.param('gameId') as string;
   return await battleFrame(c, gameId);
@@ -188,28 +222,104 @@ const battleFrame = async(
   >, 
   gameId: string
 ) => {
-  let gameInfo = await getGameInfoByGameId(gameId);
+//   let gameInfo = await getGameInfoByGameId(gameId);
 
-  if(!gameInfo) {
-    return c.res({
-      title,
-      image: 'https://i.imgur.com/R0qW9mo.png',
-      imageAspectRatio: '1:1',
-      intents: [<Button action="/">BACK</Button>],
-    })
-  }
+//   if(!gameInfo) {
+//     return c.res({
+//       title,
+//       image: 'https://i.imgur.com/R0qW9mo.png',
+//       imageAspectRatio: '1:1',
+//       intents: [<Button action="/">BACK</Button>],
+//     })
+//   }
 
-  const gameName = gameInfo[0].name;
+//   const gameName = gameInfo[0].name;
 
   return c.res({
     title,
     image: 'https://i.imgur.com/Izd0SLP.png',
     imageAspectRatio: '1:1',
     intents: [
-      <Button action='/'>BACK</Button>
+      <Button action={`/battle/${gameId}/fight`}>FIGHT</Button>,
+      <Button action={`/battle/${gameId}/pokemon`}>POKEMON</Button>,
+      <Button action={`/battle/${gameId}/run`}>RUN</Button>
     ]
   })
 }
+
+// app.frame('/battle/:gameId/fight', async (c) => {
+//   const gameId = c.req.param('gameId') as string;
+//   // const img = await generateGame(`pikachu`,`chupacu`,10,20,30,50);
+//   return c.res({
+//     title,
+//     image: 'https://i.imgur.com/Izd0SLP.png',
+//     imageAspectRatio: '1:1',
+//     intents: [
+//       <Button action={`/battle/${gameId}`}>1</Button>,
+//       <Button action={`/battle/${gameId}`}>2</Button>,
+//       <Button action={`/battle/${gameId}`}>3</Button>,
+//       <Button action={`/battle/${gameId}`}>↩️</Button>
+//     ]
+//   })
+// });
+
+app.frame('/imgtest2', async (c) => {
+  const gameId = c.req.param('gameId') as string;
+  const img = await generateGame(`pikachu`,`chupacu`,10,20,30,50);
+  console.log(img);
+  const a = await sharp(img).png()
+  return c.res({
+    title,
+    image: 'https://i.imgur.com/Izd0SLP.png',
+    imageAspectRatio: '1:1',
+    intents: [
+      <Button action={`/battle/${gameId}`}>1</Button>,
+      <Button action={`/battle/${gameId}`}>2</Button>,
+      <Button action={`/battle/${gameId}`}>3</Button>,
+      <Button action={`/battle/${gameId}`}>↩️</Button>
+    ]
+  })
+});
+
+app.hono.get('/imgtest', async (c) => {
+  // const params = JSON.parse(decodeURIComponent(c.req.param('params')));
+
+  // const { message, quantities, address } = params;
+  console.log("asdadadsa")
+
+  const image = await generateGame(`pikachu`,`chupacu`,10,20,30,50);
+
+  console.log(image)
+
+  return c.newResponse(image, 200, { 'Content-Type': 'image/png' });
+});
+
+app.frame('/battle/:gameId/pokemon', async (c) => {
+  const gameId = c.req.param('gameId') as string;
+  return c.res({
+    title,
+    image: 'https://i.imgur.com/Izd0SLP.png',
+    imageAspectRatio: '1:1',
+    intents: [
+      <Button action={`/battle/${gameId}`}>🔄️</Button>,
+      <Button action={`/battle/${gameId}`}>ENEMY 🔎</Button>,
+      <Button action={`/battle/${gameId}`}>↩️</Button>
+    ]
+  })
+});
+
+app.frame('/battle/:gameId/run', async (c) => {
+  const gameId = c.req.param('gameId') as string;
+  return c.res({
+    title,
+    image: '/RUN.png',
+    imageAspectRatio: '1:1',
+    intents: [
+      <Button action={`/battle/${gameId}`}>NO</Button>,
+      <Button action={`/battle/${gameId}`}>YES</Button>,
+    ]
+  })
+});
 
 app.frame('/pokedex/:id', async (c) => {
   const { frameData } = c;
@@ -217,6 +327,8 @@ app.frame('/pokedex/:id', async (c) => {
   const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
   const playerAddress = verifiedAddresses[0] as `0x${string}`;
   const playerPokemons = ['1', '2'];
+  //// uncomment when database is ready
+  // const playerPokemons = await getPokemonsByPlayerId(fid!);
   const id = Number(c.req.param('id')) || 0;
   const totalPlayerPokemons = playerPokemons.length;
 
@@ -236,7 +348,7 @@ app.frame('/pokedex/:id', async (c) => {
 app.frame('/new', (c) => {
   return c.res({
     title,
-    image: '/gacha.jpg',
+    image: '/gacha2.png',
     imageAspectRatio: '1:1',
     intents: [
     <Button.Transaction action={`/loading`} target={`/mint`}>CAPTURE 🍀</Button.Transaction>,
@@ -351,6 +463,102 @@ app.frame('/scores', (c) => {
     ],
   })
 })
+
+
+/////////////////////
+function gameComponents() {
+  const components = [];
+  
+  console.log("CP1")
+  const pokemon1 = Buffer.from(`
+    <svg width="202" height="37">
+    <text x="275" y="65" text-anchor="end" font-family="Arial" font-size="40" fill="white">aaaaa</text>
+    </svg>
+    `);
+    
+    const pokemon2 = Buffer.from(`
+    <svg width="202" height="37">
+    <text x="55" y="43" text-anchor="end" font-family="Arial" font-size="40" fill="white">$aaaaa</text>
+    </svg>
+    `);
+    
+    components.push({
+      input: pokemon1,
+      top: 355,
+      left: 275,
+    });
+
+    components.push({
+    input: pokemon2,
+    top: 43,
+    left: 55,
+  });
+  
+  console.log("CP2")
+  const card1 = Buffer.from(`
+    <svg width="300" height="120">
+      <rect x="1.5" y="1.5" width="297" height="117" rx="23.5" fill="#3D3359" stroke="#5A534B" stroke-width="3"/>
+    </svg>
+  `);
+    
+  const card2 = Buffer.from(`
+    <svg width="300" height="120">
+      <rect x="1.5" y="1.5" width="297" height="117" rx="23.5" fill="#3D3359" stroke="#5A534B" stroke-width="3"/>
+    </svg>
+  `);
+    
+  components.push({
+    input: card1,
+    top: 355,
+    left: 40,
+  });
+  
+  components.push({
+    input: card2,
+    top: 45,
+    left: 40,
+  });
+   
+  console.log("dasadasdasdasd")
+  return components;
+  
+}
+
+const generateGame = async (pokemon1Name: string, pokemon2Name: string, totalHP1: number, currentHp1: number, totalHP2: number, currentHp2: number) => {
+  const baseImage = await sharp('./public/pokemon-battle.png').resize(
+    599,
+    599,
+  );
+  
+  const game = gameComponents()
+  
+  const pokemon1Image = await sharp('./public/1.png').resize(
+    200,
+    200,
+  ).png().toBuffer();
+  
+  const pokemon2Image = await sharp('./public/2.png').resize(
+    200,
+    200,
+  ).png().toBuffer();
+  
+  console.log("pkboeprjk")
+
+  // game.push(
+  //   { input: pokemon1Image, top: 355, left: 40 }
+  // )
+  // game.push(
+  //   { input: pokemon2Image, top: 45, left: 372 }
+  // )
+
+  const finalImage = await baseImage
+    .composite(game)
+    .png()
+    .toBuffer();
+
+    console.log(finalImage);
+  return finalImage;
+};
 
 
 if (process.env.NODE_ENV !== 'production') {
