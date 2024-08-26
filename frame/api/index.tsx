@@ -34,7 +34,7 @@ app.use('/*', serveStatic({ root: './public' }))
 app.frame('/', (c) => {
   return c.res({
     title,
-    image: '/pikachu.jpg',
+    image: '/pikachu.png',
     imageAspectRatio: '1:1',
     intents: [
     <Button action={`/verify`}>PLAY 🔴</Button>,
@@ -80,7 +80,7 @@ app.frame('/battle', async (c) => {
   // const playerAddress = verifiedAddresses[0] as `0x${string}`;
   return c.res({
     title,
-    image: '/battle.png',
+    image: '/battle2.png',
     imageAspectRatio: '1:1',
     intents: [
     <Button action={`/pokemons/0/0`}>POKEMONS</Button>,
@@ -266,6 +266,7 @@ app.frame('/imgtest2', async (c) => {
   const gameId = c.req.param('gameId') as string;
   const img = await generateGame(`pikachu`,`chupacu`,10,20,30,50);
   console.log(img);
+  const a = await sharp(img).png()
   return c.res({
     title,
     image: 'https://i.imgur.com/Izd0SLP.png',
@@ -289,7 +290,7 @@ app.hono.get('/imgtest', async (c) => {
 
   console.log(image)
 
-  return c.newResponse(image, 200, { 'Content-Type': '/png' });
+  return c.newResponse(image, 200, { 'Content-Type': 'image/png' });
 });
 
 app.frame('/battle/:gameId/pokemon', async (c) => {
@@ -324,7 +325,9 @@ app.frame('/pokedex/:id', async (c) => {
   const fid = frameData?.fid;
   const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
   const playerAddress = verifiedAddresses[0] as `0x${string}`;
-  const playerPokemons = await getPokemonsByPlayerId(fid!);
+  const playerPokemons = ['1', '2'];
+  //// uncomment when database is ready
+  // const playerPokemons = await getPokemonsByPlayerId(fid!);
   const id = Number(c.req.param('id')) || 0;
   const totalPlayerPokemons = playerPokemons.length;
 
@@ -333,8 +336,8 @@ app.frame('/pokedex/:id', async (c) => {
     image: `/${playerPokemons[boundIndex(id+1, totalPlayerPokemons)]}.png`,
     imageAspectRatio: '1:1',
     intents: [
-    <Button action={`/pokedex/${playerPokemons[boundIndex(id-1, totalPlayerPokemons)]}`}>⬅️</Button>,
-    <Button action={`/pokedex/${playerPokemons[boundIndex(id+1, totalPlayerPokemons)]}`}>➡️</Button>,
+    <Button action={`/pokedex/${boundIndex(id-1, totalPlayerPokemons)}`}>⬅️</Button>,
+    <Button action={`/pokedex/${boundIndex(id+1, totalPlayerPokemons)}`}>➡️</Button>,
     <Button action={`/verify`}>OK ✅</Button>,
     <Button action={`/new`}>NEW 🎲</Button>,
     ],
@@ -345,7 +348,7 @@ app.frame('/new', (c) => {
   const pokemonId = 2; //random number
   return c.res({
     title,
-    image: '/gacha.jpg',
+    image: '/gacha2.png',
     imageAspectRatio: '1:1',
     intents: [
     <Button.Transaction action={`/loading/${pokemonId}`} target={`/mint`}>CAPTURE 🍀</Button.Transaction>,
