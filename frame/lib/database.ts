@@ -11,8 +11,8 @@ export const getGameInfoByGameId = async (id: string) => {
   return JSON.parse(fromHex(payload, 'string'));
 }
 
-export const assignPokemonToUser = async (senderId: number, hash: `0x${string}`, pokemonId: number) => {
-  const payload = toHex(JSON.stringify({ action: 'mint-pokemon', hash, pokemonId, senderId }))
+export const assignPokemonToUser = async (senderId: number, senderWallet: `0x${string}`, hash: `0x${string}`) => {
+  const payload = toHex(JSON.stringify({ action: 'mint-pokemon', hash, senderId, senderWallet }))
 
   const response = await fetch(`${BACKEND_INSPECT_URL}/${payload}`);
 
