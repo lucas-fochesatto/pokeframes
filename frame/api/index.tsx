@@ -11,6 +11,7 @@ import { BlankInput } from 'hono/types';
 import { assignPokemonToUser, getGameInfoByGameId, getPokemonsByPlayerId } from '../lib/database.js';
 import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title} from '../constant/config.js';
 import { boundIndex } from '../lib/utils/boundIndex.js';
+import { fromHex } from 'viem';
 
 type State = {
   verifiedAddresses?: `0x${string}`[];
@@ -345,23 +346,21 @@ app.frame('/pokedex/:id', async (c) => {
 })
 
 app.frame('/new', (c) => {
-  const pokemonId = 2; //random number
   return c.res({
     title,
     image: '/gacha2.png',
     imageAspectRatio: '1:1',
     intents: [
-    <Button.Transaction action={`/loading/${pokemonId}`} target={`/mint`}>CAPTURE 🍀</Button.Transaction>,
+    <Button.Transaction action={`/loading`} target={`/mint`}>CAPTURE 🍀</Button.Transaction>,
     <Button action={`/`}>BACK</Button>,
     ],
   })
 })
 
-app.frame('/loading/:pokemonId', async (c) => {
-  const pokemonId = c.req.param('pokemonId');
-
+app.frame('/loading', async (c) => {
   const txId = c.transactionId ? c.transactionId : '0x';
   const fid = c.frameData?.fid;
+  const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
 
   if (txId !== '0x') {
     try {
@@ -377,8 +376,10 @@ app.frame('/loading/:pokemonId', async (c) => {
 
       if (transactionReceipt?.status === 'success') {
         // add a function to create a new pokemon for the user in our backend
-        const data = await assignPokemonToUser(fid!, txId as `0x${string}`, Number(pokemonId))
-        console.log(data);
+        const data = await assignPokemonToUser(fid!, verifiedAddresses[0], txId as `0x${string}`)
+        const report = data.reports[0].payload;
+        const str = JSON.parse(fromHex(report, 'string')).message; // { message: "Player 1 created with pokemon 2" }
+        const pokemonId = str.pokemonId;
 
         return c.res({
           title,
@@ -399,7 +400,7 @@ app.frame('/loading/:pokemonId', async (c) => {
     image: `/loading.gif`,
     imageAspectRatio: '1:1',
     intents: [
-      <Button action={`/loading/${pokemonId}`}>REFRESH 🔄️</Button>,
+      <Button action={`/loading`}>REFRESH 🔄️</Button>,
     ],
   })
 })
