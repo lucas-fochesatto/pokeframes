@@ -18,4 +18,5 @@ export interface InspectPayload {
     battleId?: string;
     pokemonId?: number;
     senderId?: number;
+    senderWallet?: `0x${string}`;
 }
