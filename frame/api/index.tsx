@@ -95,6 +95,9 @@ app.frame('/pokemons/:pokemonId/:index', async (c) => {
   const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
   const playerAddress = verifiedAddresses[0] as `0x${string}`;
   const pokemonId = Number(c.req.param('pokemonId')) || 0;
+
+  
+
   const playerPokemons = ['1', '2'];
   const totalPlayerPokemons = playerPokemons.length;
   const index = Number(c.req.param('index')); 
@@ -248,7 +251,6 @@ app.frame('/new', (c) => {
 app.frame('/loading', async (c) => {
   const txId = c.transactionId ? c.transactionId : '0x';
   const fid = c.frameData?.fid;
-  const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
 
   if (txId !== '0x') {
     try {
@@ -264,7 +266,7 @@ app.frame('/loading', async (c) => {
 
       if (transactionReceipt?.status === 'success') {
         // add a function to create a new pokemon for the user in our backend
-        const data = await assignPokemonToUser(fid!, verifiedAddresses[0], txId as `0x${string}`)
+        const data = await assignPokemonToUser(fid!, txId as `0x${string}`)
         const report = data.reports[0].payload;
         const str = JSON.parse(fromHex(report, 'string')).message; // { message: "Player 1 created with pokemon 2" }
         const pokemonId = str.pokemonId;
