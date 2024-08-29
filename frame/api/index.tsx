@@ -6,10 +6,10 @@ import { publicClient } from '../lib/contracts.js';
 import { devtools } from 'frog/dev';
 import { handle } from 'frog/vercel';
 import { serve } from '@hono/node-server';
-import { BACKEND_URL } from '../constant/config.js';
+// import { BACKEND_URL } from '../constant/config.js';
 import { BlankInput } from 'hono/types';
-import { assignPokemonToUser, getGameInfoByGameId, getPokemonsByPlayerId } from '../lib/database.js';
-import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title} from '../constant/config.js';
+// import { assignPokemonToUser, getGameInfoByGameId, getPokemonsByPlayerId } from '../lib/database.js';
+import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title } from '../constant/config.js';
 import { boundIndex } from '../lib/utils/boundIndex.js';
 import { fromHex } from 'viem';
 
@@ -19,7 +19,7 @@ type State = {
   userName: any;
 }
 
-export const app = new Frog<{State: State}>({
+export const app = new Frog<{ State: State }>({
   title,
   assetsPath: '/',
   basePath: '/api',
@@ -38,14 +38,14 @@ app.frame('/', (c) => {
     image: '/pikachu.png',
     imageAspectRatio: '1:1',
     intents: [
-    <Button action={`/verify`}>PLAY 🔴</Button>,
+      <Button action={`/verify`}>PLAY 🔴</Button>,
     ],
   })
 })
 
 app.frame('/verify', async (c) => {
   const fid = c.frameData?.fid;
-  if (fid) {  
+  if (fid) {
     const { verifiedAddresses } = await getFarcasterUserInfo(fid);
     if (!verifiedAddresses || verifiedAddresses.length === 0) {
       return c.res({
@@ -67,9 +67,9 @@ app.frame('/verify', async (c) => {
     image: '/ok.jpg',
     imageAspectRatio: '1:1',
     intents: [
-    <Button action={`/battle`}>BATTLE</Button>,
-    <Button action={`/pokedex/0`}>POKEDEX</Button>,
-    <Button action={`/scores`}>SCORES</Button>,
+      <Button action={`/battle`}>BATTLE</Button>,
+      <Button action={`/pokedex/0`}>POKEDEX</Button>,
+      <Button action={`/scores`}>SCORES</Button>,
     ],
   })
 })
@@ -84,8 +84,8 @@ app.frame('/battle', async (c) => {
     image: '/battle2.png',
     imageAspectRatio: '1:1',
     intents: [
-    <Button action={`/pokemons/0/0`}>POKEMONS</Button>,
-    <Button action={`/verify`}>BACK</Button>,
+      <Button action={`/pokemons/0/0`}>POKEMONS</Button>,
+      <Button action={`/verify`}>BACK</Button>,
     ],
   })
 })
@@ -101,42 +101,42 @@ app.frame('/pokemons/:pokemonId/:index', async (c) => {
 
   const playerPokemons = ['1', '2'];
   const totalPlayerPokemons = playerPokemons.length;
-  const index = Number(c.req.param('index')); 
+  const index = Number(c.req.param('index'));
   if (index == 3) {
-  return c.res({
-    title,
-    image: `/pokeball.gif`,
-    imageAspectRatio: '1:1',
-    intents: [
-    <Button.Transaction action={`/battle/handle/0/0x`} target='/mint'>✅</Button.Transaction>,
-    <Button action={`/`}>BACK 🏠</Button>,
-    ],
-  })
-} if (pokemonId == 0) {
-  return c.res({
-    title,
-    image: `/${playerPokemons[pokemonId]}.png`,
-    imageAspectRatio: '1:1',
-    intents: [
-    <Button action={`/pokemons/${boundIndex(pokemonId - 1, totalPlayerPokemons)}/${index}`}>⬅️</Button>,
-    <Button action={`/pokemons/${boundIndex(pokemonId + 1, totalPlayerPokemons)}/${index}`}>➡️</Button>,
-    <Button action={`/pokemons/${boundIndex(pokemonId, totalPlayerPokemons)}/${index+1}`}>✅</Button>,
-    <Button action={`/`}>BACK 🏠</Button>,
-    ],
-  })
-} else {
-  return c.res({
-    title,
-    image: `/${playerPokemons[pokemonId]}.png`,
-    imageAspectRatio: '1:1',
-    intents: [
-    <Button action={`/pokemons/${boundIndex(pokemonId - 1, totalPlayerPokemons)}/${index}`}>⬅️</Button>,
-    <Button action={`/pokemons/${boundIndex(pokemonId + 1, totalPlayerPokemons)}/${index}`}>➡️</Button>,
-    <Button action={`/pokemons/${boundIndex(pokemonId, totalPlayerPokemons)}/${index+1}`}>✅</Button>,
-    <Button action={`/`}>BACK 🏠</Button>,
-    ],
-  })
-}
+    return c.res({
+      title,
+      image: `/pokeball.gif`,
+      imageAspectRatio: '1:1',
+      intents: [
+        <Button.Transaction action={`/battle/handle/0/0x`} target='/mint'>✅</Button.Transaction>,
+        <Button action={`/`}>BACK 🏠</Button>,
+      ],
+    })
+  } if (pokemonId == 0) {
+    return c.res({
+      title,
+      image: `/${playerPokemons[pokemonId]}.png`,
+      imageAspectRatio: '1:1',
+      intents: [
+        <Button action={`/pokemons/${boundIndex(pokemonId - 1, totalPlayerPokemons)}/${index}`}>⬅️</Button>,
+        <Button action={`/pokemons/${boundIndex(pokemonId + 1, totalPlayerPokemons)}/${index}`}>➡️</Button>,
+        <Button action={`/pokemons/${boundIndex(pokemonId, totalPlayerPokemons)}/${index + 1}`}>✅</Button>,
+        <Button action={`/`}>BACK 🏠</Button>,
+      ],
+    })
+  } else {
+    return c.res({
+      title,
+      image: `/${playerPokemons[pokemonId]}.png`,
+      imageAspectRatio: '1:1',
+      intents: [
+        <Button action={`/pokemons/${boundIndex(pokemonId - 1, totalPlayerPokemons)}/${index}`}>⬅️</Button>,
+        <Button action={`/pokemons/${boundIndex(pokemonId + 1, totalPlayerPokemons)}/${index}`}>➡️</Button>,
+        <Button action={`/pokemons/${boundIndex(pokemonId, totalPlayerPokemons)}/${index + 1}`}>✅</Button>,
+        <Button action={`/`}>BACK 🏠</Button>,
+      ],
+    })
+  }
 })
 
 app.frame('/battle/handle/:gameId/:txid', async (c) => {
@@ -151,7 +151,7 @@ app.frame('/battle/handle/:gameId/:txid', async (c) => {
 
   if (txId !== '0x') {
     c.transactionId = txId as `0x${string}`;
-  
+
     try {
       transactionReceipt = await publicClient.getTransactionReceipt({
         hash: txId as `0x${string}`,
@@ -164,16 +164,16 @@ app.frame('/battle/handle/:gameId/:txid', async (c) => {
     }
   }
   if (transactionReceipt?.status === 'success') {
-  gameId = txId as `0x${string}` + playerAddress;   
-  return c.res({
-    title,
-    image: `/ok.jpg`,
-    imageAspectRatio: '1:1',
-    intents: [
-    <Button.Link href={`${SHARE_INTENT}${SHARE_TEXT}${SHARE_EMBEDS}${FRAME_URL}/battle/handle/${gameId}/${c.transactionId}`}>SHARE</Button.Link>,
-    <Button action={`/battle/${gameId}`}>REFRESH</Button>,
-    ],
-  })
+    gameId = txId as `0x${string}` + playerAddress;
+    return c.res({
+      title,
+      image: `/ok.jpg`,
+      imageAspectRatio: '1:1',
+      intents: [
+        <Button.Link href={`${SHARE_INTENT}${SHARE_TEXT}${SHARE_EMBEDS}${FRAME_URL}/battle/handle/${gameId}/${c.transactionId}`}>SHARE</Button.Link>,
+        <Button action={`/battle/${gameId}`}>REFRESH</Button>,
+      ],
+    })
   }
   gameId = '0x';
   return c.res({
@@ -181,7 +181,7 @@ app.frame('/battle/handle/:gameId/:txid', async (c) => {
     image: `/1.png`,
     imageAspectRatio: '1:1',
     intents: [
-    <Button action={`/battle/handle/${gameId}/${c.transactionId}`}>REFRESH</Button>,
+      <Button action={`/battle/handle/${gameId}/${c.transactionId}`}>REFRESH</Button>,
     ],
   })
 })
@@ -215,28 +215,28 @@ app.frame('/battle/:gameId', async (c) => {
   return await battleFrame(c, gameId);
 });
 
-const battleFrame = async(
+const battleFrame = async (
   c: FrameContext<
     {
       State: State;
     },
     '/battle/:gameId' | '/battle/random',
     BlankInput
-  >, 
+  >,
   gameId: string
 ) => {
-//   let gameInfo = await getGameInfoByGameId(gameId);
+  //   let gameInfo = await getGameInfoByGameId(gameId);
 
-//   if(!gameInfo) {
-//     return c.res({
-//       title,
-//       image: 'https://i.imgur.com/R0qW9mo.png',
-//       imageAspectRatio: '1:1',
-//       intents: [<Button action="/">BACK</Button>],
-//     })
-//   }
+  //   if(!gameInfo) {
+  //     return c.res({
+  //       title,
+  //       image: 'https://i.imgur.com/R0qW9mo.png',
+  //       imageAspectRatio: '1:1',
+  //       intents: [<Button action="/">BACK</Button>],
+  //     })
+  //   }
 
-//   const gameName = gameInfo[0].name;
+  //   const gameName = gameInfo[0].name;
 
   return c.res({
     title,
@@ -266,14 +266,12 @@ const battleFrame = async(
 //   })
 // });
 
-app.frame('/imgtest2', async (c) => {
+app.frame('/battle/:gameId/fight', async (c) => {
   const gameId = c.req.param('gameId') as string;
-  const img = await generateGame(`pikachu`,`chupacu`,10,20,30,50);
-  console.log(img);
-  const a = await sharp(img).png()
+  // const img = await generateGame(`pikachu`,`chupacu`,10,20,30,50);
   return c.res({
     title,
-    image: 'https://i.imgur.com/Izd0SLP.png',
+    image: '',
     imageAspectRatio: '1:1',
     intents: [
       <Button action={`/battle/${gameId}`}>1</Button>,
@@ -282,19 +280,6 @@ app.frame('/imgtest2', async (c) => {
       <Button action={`/battle/${gameId}`}>↩️</Button>
     ]
   })
-});
-
-app.hono.get('/imgtest', async (c) => {
-  // const params = JSON.parse(decodeURIComponent(c.req.param('params')));
-
-  // const { message, quantities, address } = params;
-  console.log("asdadadsa")
-
-  const image = await generateGame(`pikachu`,`chupacu`,10,20,30,50);
-
-  console.log(image)
-
-  return c.newResponse(image, 200, { 'Content-Type': 'image/png' });
 });
 
 app.frame('/battle/:gameId/pokemon', async (c) => {
@@ -337,13 +322,13 @@ app.frame('/pokedex/:id', async (c) => {
 
   return c.res({
     title,
-    image: `/${playerPokemons[boundIndex(id+1, totalPlayerPokemons)]}.png`,
+    image: `/${playerPokemons[boundIndex(id + 1, totalPlayerPokemons)]}.png`,
     imageAspectRatio: '1:1',
     intents: [
-    <Button action={`/pokedex/${boundIndex(id-1, totalPlayerPokemons)}`}>⬅️</Button>,
-    <Button action={`/pokedex/${boundIndex(id+1, totalPlayerPokemons)}`}>➡️</Button>,
-    <Button action={`/verify`}>OK ✅</Button>,
-    <Button action={`/new`}>NEW 🎲</Button>,
+      <Button action={`/pokedex/${boundIndex(id - 1, totalPlayerPokemons)}`}>⬅️</Button>,
+      <Button action={`/pokedex/${boundIndex(id + 1, totalPlayerPokemons)}`}>➡️</Button>,
+      <Button action={`/verify`}>OK ✅</Button>,
+      <Button action={`/new`}>NEW 🎲</Button>,
     ],
   })
 })
@@ -354,8 +339,8 @@ app.frame('/new', (c) => {
     image: '/gacha2.png',
     imageAspectRatio: '1:1',
     intents: [
-    <Button.Transaction action={`/loading`} target={`/mint`}>CAPTURE 🍀</Button.Transaction>,
-    <Button action={`/`}>BACK</Button>,
+      <Button.Transaction action={`/loading`} target={`/mint`}>CAPTURE 🍀</Button.Transaction>,
+      <Button action={`/`}>BACK</Button>,
     ],
   })
 })
@@ -412,7 +397,7 @@ app.frame('/loading', async (c) => {
 // -> associate the user to the pokemon in our database (cartesi) 
 // -> associate ownership to the user when he withdraws his NFT
 app.transaction('/mint', (c) => {
-  const mintCost  = '0.000777'; 
+  const mintCost = '0.000777';
   return c.send({
     chainId: 'eip155:11155111',
     to: '0x02f37D3C000Fb5D2A824a3dc3f1a29fa5530A8D4',
@@ -436,8 +421,8 @@ app.frame('/gotcha/:pokemonId', (c) => {
     image: `/${pokemonId}.png`,
     imageAspectRatio: '1:1',
     intents: [
-    <Button.Link href={`${SHARE_INTENT}${SHARE_GACHA}${SHARE_EMBEDS}${FRAME_URL}/share/${pokemonId}`}>SHARE</Button.Link>,
-    <Button action={`/`}>HOME 🏠</Button>,
+      <Button.Link href={`${SHARE_INTENT}${SHARE_GACHA}${SHARE_EMBEDS}${FRAME_URL}/share/${pokemonId}`}>SHARE</Button.Link>,
+      <Button action={`/`}>HOME 🏠</Button>,
     ],
   })
 })
@@ -449,7 +434,7 @@ app.frame('/share/:pokemonId', (c) => {
     image: `/${pokemonId}.png`,
     imageAspectRatio: '1:1',
     intents: [
-    <Button action={`/`}>TRY IT OUT 🏠</Button>,
+      <Button action={`/`}>TRY IT OUT 🏠</Button>,
     ],
   })
 })
@@ -461,105 +446,141 @@ app.frame('/scores', (c) => {
     image: 'https://i.imgur.com/2tRZhkQ.jpeg',
     imageAspectRatio: '1:1',
     intents: [
-    <Button action={`/`}>RESET</Button>,
+      <Button action={`/`}>RESET</Button>,
     ],
   })
 })
 
 
-/////////////////////
-function gameComponents() {
-  const components = [];
-  
-  console.log("CP1")
-  const pokemon1 = Buffer.from(`
-    <svg width="202" height="37">
-    <text x="275" y="65" text-anchor="end" font-family="Arial" font-size="40" fill="white">aaaaa</text>
-    </svg>
-    `);
-    
-    const pokemon2 = Buffer.from(`
-    <svg width="202" height="37">
-    <text x="55" y="43" text-anchor="end" font-family="Arial" font-size="40" fill="white">$aaaaa</text>
-    </svg>
-    `);
-    
-    components.push({
-      input: pokemon1,
-      top: 355,
-      left: 275,
+// test frame routing
+app.frame('/vs', (c) => {
+  return c.res({
+    title,
+    image: '/image/vs/',
+    imageAspectRatio: '1:1',
+    intents: [
+      <Button action={`/vs`}>Refresh</Button>,
+    ],
+  })
+})
+
+// test routing with dynamic img
+app.hono.get('/image/vs', async (c) => {
+  try {
+    const image = await generateGame(`pikachu`, `chupacu`, 20, 4, 30, 23);
+
+    return c.newResponse(image, 200, {
+      'Content-Type': 'image/png',
+      'Cache-Control': 'max-age=0', //try no-cache later
     });
+  } catch (error) {
+    console.error("Error generating image:", error);
+    return c.newResponse("Error generating image", 500);
+  }
+});
 
-    components.push({
-    input: pokemon2,
-    top: 43,
-    left: 55,
-  });
-  
-  console.log("CP2")
-  const card1 = Buffer.from(`
-    <svg width="300" height="120">
-      <rect x="1.5" y="1.5" width="297" height="117" rx="23.5" fill="#3D3359" stroke="#5A534B" stroke-width="3"/>
-    </svg>
-  `);
-    
-  const card2 = Buffer.from(`
-    <svg width="300" height="120">
-      <rect x="1.5" y="1.5" width="297" height="117" rx="23.5" fill="#3D3359" stroke="#5A534B" stroke-width="3"/>
-    </svg>
-  `);
-    
-  components.push({
-    input: card1,
-    top: 355,
-    left: 40,
-  });
-  
-  components.push({
-    input: card2,
-    top: 45,
-    left: 40,
-  });
-   
-  console.log("dasadasdasdasd")
-  return components;
-  
-}
+const generateGame = async (
+  pokemon1Name: string,
+  pokemon2Name: string,
+  totalHP1: number,
+  currentHp1: number,
+  totalHP2: number,
+  currentHp2: number
+) => {
+  try {
 
-const generateGame = async (pokemon1Name: string, pokemon2Name: string, totalHP1: number, currentHp1: number, totalHP2: number, currentHp2: number) => {
-  const baseImage = await sharp('./public/pokemon-battle.png').resize(
-    599,
-    599,
-  );
-  
-  const game = gameComponents()
-  
-  const pokemon1Image = await sharp('./public/1.png').resize(
-    200,
-    200,
-  ).png().toBuffer();
-  
-  const pokemon2Image = await sharp('./public/2.png').resize(
-    200,
-    200,
-  ).png().toBuffer();
-  
-  console.log("pkboeprjk")
+    // have to rewrite this a little better later (and maybe do it in a separate file as a function)
+    const gameComponents = (() => {
+      const components = [];
 
-  // game.push(
-  //   { input: pokemon1Image, top: 355, left: 40 }
-  // )
-  // game.push(
-  //   { input: pokemon2Image, top: 45, left: 372 }
-  // )
+      // SVG box card
+      const card1SVG = `
+        <svg width="255" height="100">
+          <rect x="2" y="2" width="220" height="80" rx="12" fill="#3D3359" stroke="#5A534B" stroke-width="3"/>
+        </svg>
+      `;
+      const card2SVG = `
+        <svg width="255" height="100">
+          <rect x="2" y="2" width="220" height="80" rx="12" fill="#3D3359" stroke="#5A534B" stroke-width="3"/>
+        </svg>
+      `;
 
-  const finalImage = await baseImage
-    .composite(game)
-    .png()
-    .toBuffer();
+      components.push({ input: Buffer.from(card1SVG), top: 440, left: 335 });
+      components.push({ input: Buffer.from(card2SVG), top: 40, left: 35 });
 
-    console.log(finalImage);
-  return finalImage;
+      // Create SVG overlays for health bars
+      const hpBarSize = 200;
+      const hp1Width = (currentHp1 / totalHP1) * hpBarSize;
+      const hp2Width = (currentHp2 / totalHP2) * hpBarSize;
+
+      const hp1SVG = `
+      <svg width="200" height="100">
+        <rect width="${hp1Width}" height="10" fill="${(hp1Width < 46) ? 'red' : 'green'}"/>
+        <rect x="${hp1Width}" width="${hpBarSize - hp1Width}" height="12" fill="black"/>
+        <text x="170" y="35" text-anchor="middle" font-family="Arial" font-size="24" fill="white">${currentHp1}/${totalHP1}</text>
+      </svg>
+      `;
+      const hp2SVG = `
+      <svg width="200" height="100">
+        <rect width="${hp2Width}" height="10" fill="${(hp2Width < 46) ? 'red' : 'green'}"/>
+        <rect x="${hp2Width}" width="${hpBarSize - hp2Width}" height="12" fill="black"/>
+        <text x="170" y="35" text-anchor="middle" font-family="Arial" font-size="24" fill="white">${currentHp2}/${totalHP2}</text>
+      </svg>
+      `;
+
+      components.push({ input: Buffer.from(hp1SVG), top: 480, left: 350 });
+      components.push({ input: Buffer.from(hp2SVG), top: 80, left: 50 });
+
+      // Create SVG overlays for Pokemon names (monkey)
+      const pokemon1SVG = `
+        <svg width="200" height="75">
+          <text x="50" y="25" text-anchor="middle" font-family="Arial" font-size="25" fill="white">${pokemon1Name}</text>
+        </svg>
+      `;
+      const pokemon2SVG = `
+        <svg width="200" height="75">
+          <text x="50" y="25" text-anchor="middle" font-family="Arial" font-size="25" fill="white">${pokemon2Name}</text>
+        </svg>
+      `;
+
+      components.push({ input: Buffer.from(pokemon1SVG), top: 445, left: 350 });
+      components.push({ input: Buffer.from(pokemon2SVG), top: 45, left: 50 });
+
+      return components;
+    })
+
+    const baseImageBuffer = await sharp('./public/pokemon-battle.png')
+      .resize(600, 600)
+      .png()
+      .toBuffer();
+
+    const gameComponentsArray = gameComponents();
+
+    const pokemon1ImageBuffer = await sharp('./public/1.png')
+      .resize(200, 200)
+      .png()
+      .toBuffer();
+
+    const pokemon2ImageBuffer = await sharp('./public/2.png')
+      .resize(200, 200)
+      .png()
+      .toBuffer();
+
+    gameComponentsArray.push({ input: pokemon1ImageBuffer, top: 350, left: 50 });
+    gameComponentsArray.push({ input: pokemon2ImageBuffer, top: 50, left: 350 });
+
+    const finalImage = await sharp(baseImageBuffer)
+      .composite(gameComponentsArray)
+      .png()
+      .toBuffer();
+
+    // console.log("Final image composed successfully");
+
+    return finalImage;
+  } catch (error) {
+    console.error("Error during game generation:", error);
+    throw error;
+  }
 };
 
 
