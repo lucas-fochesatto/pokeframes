@@ -74,7 +74,7 @@ export const generateGame = async (
       console.error("Error during game generation:", error);
       throw error;
     }
-  };
+}
 
 export const generateFight = async (
     pokemonName: string,
@@ -85,7 +85,6 @@ export const generateFight = async (
     try {
       const fightComponents = (() => {
         const components = [];
-  
         const sentence = `        
           <svg width="430" height="65">
             <text x="10" y="32" text-anchor="middle" font-family="Handjet" font-size="35" fill="white">What will ${pokemonName} do?</text>
@@ -106,19 +105,29 @@ export const generateFight = async (
         components.push({ input: Buffer.from(atk3), top: 300, left: 126 });
         components.push({ input: Buffer.from(back), top: 317, left: 394 });
         components.push({ input: Buffer.from(hp1SVG), top: 466, left: 180 });
+        return components;
      })
-      const baseImageBuffer = await sharp('./public/battle-fight.png')
-      .resize(600, 600)
-      .png()
-      .toBuffer();
-    
-      const pokemon1ImageBuffer = await sharp('./public/pikachu2.png')
-      .resize(100, 100)
-      .png()
-      .toBuffer();
-      } catch(error) {
+
+    const fightComponentsArray = fightComponents();
+    const baseImageBuffer = await sharp('./public/battle-fight.png')
+    .resize(600, 600)
+    .png()
+    .toBuffer();
+    const pokemon1ImageBuffer = await sharp('./public/pikachu2.png')
+    .resize(100, 100)
+    .png()
+    .toBuffer();
+
+    fightComponentsArray.push({input: pokemon1ImageBuffer, top: 40, left: 438});
+    const finalImage = await sharp(baseImageBuffer)
+    .composite(fightComponentsArray)
+    .png()
+    .toBuffer();
+
+    return finalImage;
+    } catch(error) {
         console.error("Error during fight menu generation:", error);
         throw error;
-      }
-  }
+    }
+}
 
