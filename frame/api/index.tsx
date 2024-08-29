@@ -12,6 +12,7 @@ import { BlankInput } from 'hono/types';
 import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title } from '../constant/config.js';
 import { boundIndex } from '../lib/utils/boundIndex.js';
 import { fromHex } from 'viem';
+import { Attack } from '../types/types.js';
 
 type State = {
   verifiedAddresses?: `0x${string}`[];
@@ -64,7 +65,7 @@ app.frame('/verify', async (c) => {
   }
   return c.res({
     title,
-    image: '/ok.jpg',
+    image: '/ok.png',
     imageAspectRatio: '1:1',
     intents: [
       <Button action={`/battle`}>BATTLE</Button>,
@@ -96,9 +97,6 @@ app.frame('/pokemons/:pokemonId/:index', async (c) => {
   const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
   const playerAddress = verifiedAddresses[0] as `0x${string}`;
   const pokemonId = Number(c.req.param('pokemonId')) || 0;
-
-  
-
   const playerPokemons = ['1', '2'];
   const totalPlayerPokemons = playerPokemons.length;
   const index = Number(c.req.param('index'));
@@ -171,7 +169,7 @@ app.frame('/battle/handle/:gameId/:txid', async (c) => {
       imageAspectRatio: '1:1',
       intents: [
         <Button.Link href={`${SHARE_INTENT}${SHARE_TEXT}${SHARE_EMBEDS}${FRAME_URL}/battle/handle/${gameId}/${c.transactionId}`}>SHARE</Button.Link>,
-        <Button action={`/battle/${gameId}`}>REFRESH</Button>,
+        <Button action={`/battle/${gameId}`}>BATTLE!</Button>,
       ],
     })
   }
@@ -220,7 +218,7 @@ const battleFrame = async (
     {
       State: State;
     },
-    '/battle/:gameId' | '/battle/random',
+    '/battle/:gameId',
     BlankInput
   >,
   gameId: string
@@ -240,38 +238,22 @@ const battleFrame = async (
 
   return c.res({
     title,
-    image: 'https://i.imgur.com/Izd0SLP.png',
+    image: '/image/vs/',
     imageAspectRatio: '1:1',
     intents: [
       <Button action={`/battle/${gameId}/fight`}>FIGHT</Button>,
-      <Button action={`/battle/${gameId}/pokemon`}>POKEMON</Button>,
+      <Button action={`/battle/${gameId}/pokemon/0`}>POKEMON</Button>,
       <Button action={`/battle/${gameId}/run`}>RUN</Button>
     ]
   })
 }
 
-// app.frame('/battle/:gameId/fight', async (c) => {
-//   const gameId = c.req.param('gameId') as string;
-//   // const img = await generateGame(`pikachu`,`chupacu`,10,20,30,50);
-//   return c.res({
-//     title,
-//     image: 'https://i.imgur.com/Izd0SLP.png',
-//     imageAspectRatio: '1:1',
-//     intents: [
-//       <Button action={`/battle/${gameId}`}>1</Button>,
-//       <Button action={`/battle/${gameId}`}>2</Button>,
-//       <Button action={`/battle/${gameId}`}>3</Button>,
-//       <Button action={`/battle/${gameId}`}>↩️</Button>
-//     ]
-//   })
-// });
-
 app.frame('/battle/:gameId/fight', async (c) => {
   const gameId = c.req.param('gameId') as string;
-  // const img = await generateGame(`pikachu`,`chupacu`,10,20,30,50);
+  // TODO: a function to update the battle log and status
   return c.res({
     title,
-    image: '',
+    image: 'image/vs/',
     imageAspectRatio: '1:1',
     intents: [
       <Button action={`/battle/${gameId}`}>1</Button>,
@@ -282,8 +264,10 @@ app.frame('/battle/:gameId/fight', async (c) => {
   })
 });
 
-app.frame('/battle/:gameId/pokemon', async (c) => {
+app.frame('/battle/:gameId/pokemon/:id', async (c) => {
+  const id = c.req.param('id') as string;
   const gameId = c.req.param('gameId') as string;
+  // TODO make a get for pokemons in the battle and a set for the active pokemon
   return c.res({
     title,
     image: 'https://i.imgur.com/Izd0SLP.png',
@@ -298,6 +282,7 @@ app.frame('/battle/:gameId/pokemon', async (c) => {
 
 app.frame('/battle/:gameId/run', async (c) => {
   const gameId = c.req.param('gameId') as string;
+  //TODO Backend function to set a winner and end the battle 
   return c.res({
     title,
     image: '/RUN.png',
@@ -362,12 +347,13 @@ app.frame('/loading', async (c) => {
       }
 
       if (transactionReceipt?.status === 'success') {
-        // add a function to create a new pokemon for the user in our backend
-        const data = await assignPokemonToUser(fid!, txId as `0x${string}`)
-        const report = data.reports[0].payload;
-        const str = JSON.parse(fromHex(report, 'string')).message; // { message: "Player 1 created with pokemon 2" }
-        const pokemonId = str.pokemonId;
-
+        //// TODO function to generate a random pokemon id
+        //// uncomment when database is ready
+        // const data = await assignPokemonToUser(fid!, txId as `0x${string}`)
+        // const report = data.reports[0].payload;
+        // const str = JSON.parse(fromHex(report, 'string')).message; // { message: "Player 1 created with pokemon 2" }
+        // const pokemonId = str.pokemonId;
+        const pokemonId = 1;
         return c.res({
           title,
           image: `/pokeball.gif`,
@@ -392,10 +378,7 @@ app.frame('/loading', async (c) => {
   })
 })
 
-//// @todo ////
-// -> mint a NFT on the mainnet for the appContract address 
-// -> associate the user to the pokemon in our database (cartesi) 
-// -> associate ownership to the user when he withdraws his NFT
+
 app.transaction('/mint', (c) => {
   const mintCost = '0.000777';
   return c.send({
@@ -439,7 +422,7 @@ app.frame('/share/:pokemonId', (c) => {
   })
 })
 
-//// @todo ////
+//// TODO nothing has been done in this frame so... 
 app.frame('/scores', (c) => {
   return c.res({
     title,
@@ -451,18 +434,16 @@ app.frame('/scores', (c) => {
   })
 })
 
-
-// test frame routing
-app.frame('/vs', (c) => {
-  return c.res({
-    title,
-    image: '/image/vs/',
-    imageAspectRatio: '1:1',
-    intents: [
-      <Button action={`/vs`}>Refresh</Button>,
-    ],
-  })
-})
+// app.frame('/vs', (c) => {
+//   return c.res({
+//     title,
+//     image: '/image/vs/',
+//     imageAspectRatio: '1:1',
+//     intents: [
+//       <Button action={`/vs`}>Refresh</Button>,
+//     ],
+//   })
+// })
 
 // test routing with dynamic img
 app.hono.get('/image/vs', async (c) => {
@@ -494,54 +475,47 @@ const generateGame = async (
       const components = [];
 
       // SVG box card
-      const card1SVG = `
-        <svg width="255" height="100">
-          <rect x="2" y="2" width="220" height="80" rx="12" fill="#3D3359" stroke="#5A534B" stroke-width="3"/>
-        </svg>
-      `;
-      const card2SVG = `
-        <svg width="255" height="100">
-          <rect x="2" y="2" width="220" height="80" rx="12" fill="#3D3359" stroke="#5A534B" stroke-width="3"/>
-        </svg>
-      `;
-
-      components.push({ input: Buffer.from(card1SVG), top: 440, left: 335 });
-      components.push({ input: Buffer.from(card2SVG), top: 40, left: 35 });
+      const cardSVG = `
+      <svg width="255" height="100">
+        <rect x="2" y="2" width="220" height="80" rx="12" fill="#3D3359" stroke="#5A534B" stroke-width="3"/>
+      </svg>
+    `;
+      components.push({ input: Buffer.from(cardSVG), top: 440, left: 335 });
+      components.push({ input: Buffer.from(cardSVG), top: 40, left: 35 });
 
       // Create SVG overlays for health bars
-      const hpBarSize = 200;
-      const hp1Width = (currentHp1 / totalHP1) * hpBarSize;
-      const hp2Width = (currentHp2 / totalHP2) * hpBarSize;
-
-      const hp1SVG = `
-      <svg width="200" height="100">
-        <rect width="${hp1Width}" height="10" fill="${(hp1Width < 46) ? 'red' : 'green'}"/>
-        <rect x="${hp1Width}" width="${hpBarSize - hp1Width}" height="12" fill="black"/>
-        <text x="170" y="35" text-anchor="middle" font-family="Arial" font-size="24" fill="white">${currentHp1}/${totalHP1}</text>
-      </svg>
-      `;
-      const hp2SVG = `
-      <svg width="200" height="100">
-        <rect width="${hp2Width}" height="10" fill="${(hp2Width < 46) ? 'red' : 'green'}"/>
-        <rect x="${hp2Width}" width="${hpBarSize - hp2Width}" height="12" fill="black"/>
-        <text x="170" y="35" text-anchor="middle" font-family="Arial" font-size="24" fill="white">${currentHp2}/${totalHP2}</text>
-      </svg>
-      `;
+      const hpSVG = ((
+        currentHp: number,
+        totalHp: number
+      ) => {
+        const hpBarSize = 200;
+        const hpWidth = (currentHp / totalHp ) * hpBarSize;
+        return (`
+        <svg width="200" height="100">
+          <rect width="${hpWidth}" height="10" fill="${(hpWidth < 46) ? 'red' : 'green'}"/>
+          <rect x="${hpWidth}" width="${hpBarSize - hpWidth}" height="12" fill="black"/>
+          <text x="170" y="35" text-anchor="middle" font-family="Arial" font-size="24" fill="white">${currentHp1}/${totalHP1}</text>
+        </svg>
+        `)
+      })
+      const hp1SVG = hpSVG(currentHp1, totalHP1);
+      const hp2SVG = hpSVG(currentHp2, totalHP2);
 
       components.push({ input: Buffer.from(hp1SVG), top: 480, left: 350 });
       components.push({ input: Buffer.from(hp2SVG), top: 80, left: 50 });
 
       // Create SVG overlays for Pokemon names (monkey)
-      const pokemon1SVG = `
+      const pokemonSVG = ((
+        pokemonName: string
+      ) => {
+        return( `
         <svg width="200" height="75">
-          <text x="50" y="25" text-anchor="middle" font-family="Arial" font-size="25" fill="white">${pokemon1Name}</text>
+          <text x="50" y="25" text-anchor="middle" font-family="Arial" font-size="25" fill="white">${pokemonName}</text>
         </svg>
-      `;
-      const pokemon2SVG = `
-        <svg width="200" height="75">
-          <text x="50" y="25" text-anchor="middle" font-family="Arial" font-size="25" fill="white">${pokemon2Name}</text>
-        </svg>
-      `;
+      `)
+      })
+      const pokemon1SVG = pokemonSVG(pokemon1Name);
+      const pokemon2SVG = pokemonSVG(pokemon2Name);
 
       components.push({ input: Buffer.from(pokemon1SVG), top: 445, left: 350 });
       components.push({ input: Buffer.from(pokemon2SVG), top: 45, left: 50 });
@@ -583,7 +557,82 @@ const generateGame = async (
   }
 };
 
+const generateFight = async (
+  pokemonName: string,
+  totalHp: number,
+  currentHp: number,
+  attacks: Attack [],
+) => {
+  try {
+    const fightComponents = (() => {
+      const components = [];
 
+      const sentence = `        
+        <svg width="200" height="75">
+          <text x="50" y="25" text-anchor="middle" font-family="Handjet" font-size="35" fill="white">What will ${pokemonName} do?</text>
+        </svg>
+      `;
+
+      const moves =((
+        attackName: string
+      ) => {
+        return (
+        `<svg width="200" height="75">
+          <text x="50" y="25" text-anchor="middle" font-family="Handjet" font-size="35" fill="white">${attackName}</text>
+        </svg>`
+        )
+      })
+
+      const atk1 = moves(attacks[0].atk);
+      const atk2 = moves(attacks[1].atk);
+      const atk3 = moves(attacks[2].atk);
+      const back = `
+        <svg width="200" height="75">
+          <text x="50" y="25" text-anchor="middle" font-family="Handjet" font-size="35" fill="white">BACK</text>
+        </svg>         
+      `
+
+      const typeBox = ((
+        pokemonType: string
+      ) => {
+        return(
+          ``
+        )
+      })
+      const pokemonType = ((
+        pokemonType: string
+      ) => {
+        return(
+          ``
+        )
+      })
+      const pp = ((
+        attackPP: number,
+        currentPP: number
+      ) => {
+        return(`
+          <svg width="200" height="75">
+            <text x="50" y="25" text-anchor="middle" font-family="Handjet" font-size="35" fill="white">${currentPP.toString()}/${attackPP.toString()}</text>
+          </svg>
+        `
+        )
+      })
+      const hpBar = ``
+   })
+    const baseImageBuffer = await sharp('./public/battle-fight.png')
+    .resize(600, 600)
+    .png()
+    .toBuffer();
+  
+    const pokemon1ImageBuffer = await sharp('./public/pikachu2.png')
+    .resize(100, 100)
+    .png()
+    .toBuffer();
+    } catch(error) {
+      console.error("Error during fight menu generation:", error);
+      throw error;
+    }
+}
 if (process.env.NODE_ENV !== 'production') {
   devtools(app, { serveStatic });
 }
