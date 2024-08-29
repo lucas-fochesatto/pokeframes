@@ -12,6 +12,7 @@ import { BlankInput } from 'hono/types';
 import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title } from '../constant/config.js';
 import { boundIndex } from '../lib/utils/boundIndex.js';
 import { fromHex } from 'viem';
+import { generateGame, generateFight } from '../image-generation/generators.js';
 import { Attack } from '../types/types.js';
 
 type State = {
@@ -253,7 +254,7 @@ app.frame('/battle/:gameId/fight', async (c) => {
   // TODO: a function to update the battle log and status
   return c.res({
     title,
-    image: 'image/vs/',
+    image: '/image/fight',
     imageAspectRatio: '1:1',
     intents: [
       <Button action={`/battle/${gameId}`}>1</Button>,
@@ -270,7 +271,7 @@ app.frame('/battle/:gameId/pokemon/:id', async (c) => {
   // TODO make a get for pokemons in the battle and a set for the active pokemon
   return c.res({
     title,
-    image: 'https://i.imgur.com/Izd0SLP.png',
+    image: '/image/fight',
     imageAspectRatio: '1:1',
     intents: [
       <Button action={`/battle/${gameId}`}>🔄️</Button>,
@@ -348,7 +349,7 @@ app.frame('/loading', async (c) => {
 
       if (transactionReceipt?.status === 'success') {
         //// TODO function to generate a random pokemon id
-        //// uncomment when database is ready
+        //// TODO uncomment when database is ready
         // const data = await assignPokemonToUser(fid!, txId as `0x${string}`)
         // const report = data.reports[0].payload;
         // const str = JSON.parse(fromHex(report, 'string')).message; // { message: "Player 1 created with pokemon 2" }
@@ -460,179 +461,21 @@ app.hono.get('/image/vs', async (c) => {
   }
 });
 
-const generateGame = async (
-  pokemon1Name: string,
-  pokemon2Name: string,
-  totalHP1: number,
-  currentHp1: number,
-  totalHP2: number,
-  currentHp2: number
-) => {
+app.hono.get('/image/fight', async (c) => {
   try {
+    const attacks = [{atk: 'light', type: {name:'normal', color:'000000'}, PP:20}, {atk: 'light', type: {name:'normal', color:'000000'}, PP:20}, {atk: 'light', type: {name:'normal', color:'000000'}, PP:20}] as Attack[];
+    const image = await generateFight('pikachu', 20, 20, attacks)
 
-    // have to rewrite this a little better later (and maybe do it in a separate file as a function)
-    const gameComponents = (() => {
-      const components = [];
-
-      // SVG box card
-      const cardSVG = `
-      <svg width="255" height="100">
-        <rect x="2" y="2" width="220" height="80" rx="12" fill="#3D3359" stroke="#5A534B" stroke-width="3"/>
-      </svg>
-    `;
-      components.push({ input: Buffer.from(cardSVG), top: 440, left: 335 });
-      components.push({ input: Buffer.from(cardSVG), top: 40, left: 35 });
-
-      // Create SVG overlays for health bars
-      const hpSVG = ((
-        currentHp: number,
-        totalHp: number
-      ) => {
-        const hpBarSize = 200;
-        const hpWidth = (currentHp / totalHp ) * hpBarSize;
-        return (`
-        <svg width="200" height="100">
-          <rect width="${hpWidth}" height="10" fill="${(hpWidth < 46) ? 'red' : 'green'}"/>
-          <rect x="${hpWidth}" width="${hpBarSize - hpWidth}" height="12" fill="black"/>
-          <text x="170" y="35" text-anchor="middle" font-family="Arial" font-size="24" fill="white">${currentHp1}/${totalHP1}</text>
-        </svg>
-        `)
-      })
-      const hp1SVG = hpSVG(currentHp1, totalHP1);
-      const hp2SVG = hpSVG(currentHp2, totalHP2);
-
-      components.push({ input: Buffer.from(hp1SVG), top: 480, left: 350 });
-      components.push({ input: Buffer.from(hp2SVG), top: 80, left: 50 });
-
-      // Create SVG overlays for Pokemon names (monkey)
-      const pokemonSVG = ((
-        pokemonName: string
-      ) => {
-        return( `
-        <svg width="200" height="75">
-          <text x="50" y="25" text-anchor="middle" font-family="Arial" font-size="25" fill="white">${pokemonName}</text>
-        </svg>
-      `)
-      })
-      const pokemon1SVG = pokemonSVG(pokemon1Name);
-      const pokemon2SVG = pokemonSVG(pokemon2Name);
-
-      components.push({ input: Buffer.from(pokemon1SVG), top: 445, left: 350 });
-      components.push({ input: Buffer.from(pokemon2SVG), top: 45, left: 50 });
-
-      return components;
-    })
-
-    const baseImageBuffer = await sharp('./public/pokemon-battle.png')
-      .resize(600, 600)
-      .png()
-      .toBuffer();
-
-    const gameComponentsArray = gameComponents();
-
-    const pokemon1ImageBuffer = await sharp('./public/1.png')
-      .resize(200, 200)
-      .png()
-      .toBuffer();
-
-    const pokemon2ImageBuffer = await sharp('./public/2.png')
-      .resize(200, 200)
-      .png()
-      .toBuffer();
-
-    gameComponentsArray.push({ input: pokemon1ImageBuffer, top: 350, left: 50 });
-    gameComponentsArray.push({ input: pokemon2ImageBuffer, top: 50, left: 350 });
-
-    const finalImage = await sharp(baseImageBuffer)
-      .composite(gameComponentsArray)
-      .png()
-      .toBuffer();
-
-    // console.log("Final image composed successfully");
-
-    return finalImage;
+    return c.newResponse(image, 200, {
+      'Content-Type': 'image/png',
+      'Cache-Control': 'max-age=0', //try no-cache later
+    });
   } catch (error) {
-    console.error("Error during game generation:", error);
-    throw error;
+    console.error("Error generating image:", error);
+    return c.newResponse("Error generating image", 500);
   }
-};
+});
 
-const generateFight = async (
-  pokemonName: string,
-  totalHp: number,
-  currentHp: number,
-  attacks: Attack [],
-) => {
-  try {
-    const fightComponents = (() => {
-      const components = [];
-
-      const sentence = `        
-        <svg width="200" height="75">
-          <text x="50" y="25" text-anchor="middle" font-family="Handjet" font-size="35" fill="white">What will ${pokemonName} do?</text>
-        </svg>
-      `;
-
-      const moves =((
-        attackName: string
-      ) => {
-        return (
-        `<svg width="200" height="75">
-          <text x="50" y="25" text-anchor="middle" font-family="Handjet" font-size="35" fill="white">${attackName}</text>
-        </svg>`
-        )
-      })
-
-      const atk1 = moves(attacks[0].atk);
-      const atk2 = moves(attacks[1].atk);
-      const atk3 = moves(attacks[2].atk);
-      const back = `
-        <svg width="200" height="75">
-          <text x="50" y="25" text-anchor="middle" font-family="Handjet" font-size="35" fill="white">BACK</text>
-        </svg>         
-      `
-
-      const typeBox = ((
-        pokemonType: string
-      ) => {
-        return(
-          ``
-        )
-      })
-      const pokemonType = ((
-        pokemonType: string
-      ) => {
-        return(
-          ``
-        )
-      })
-      const pp = ((
-        attackPP: number,
-        currentPP: number
-      ) => {
-        return(`
-          <svg width="200" height="75">
-            <text x="50" y="25" text-anchor="middle" font-family="Handjet" font-size="35" fill="white">${currentPP.toString()}/${attackPP.toString()}</text>
-          </svg>
-        `
-        )
-      })
-      const hpBar = ``
-   })
-    const baseImageBuffer = await sharp('./public/battle-fight.png')
-    .resize(600, 600)
-    .png()
-    .toBuffer();
-  
-    const pokemon1ImageBuffer = await sharp('./public/pikachu2.png')
-    .resize(100, 100)
-    .png()
-    .toBuffer();
-    } catch(error) {
-      console.error("Error during fight menu generation:", error);
-      throw error;
-    }
-}
 if (process.env.NODE_ENV !== 'production') {
   devtools(app, { serveStatic });
 }
