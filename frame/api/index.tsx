@@ -96,6 +96,9 @@ app.frame('/pokemons/:pokemonId/:index', async (c) => {
   const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
   const playerAddress = verifiedAddresses[0] as `0x${string}`;
   const pokemonId = Number(c.req.param('pokemonId')) || 0;
+
+  
+
   const playerPokemons = ['1', '2'];
   const totalPlayerPokemons = playerPokemons.length;
   const index = Number(c.req.param('index'));
@@ -342,53 +345,52 @@ app.frame('/new', (c) => {
   })
 })
 
-// app.frame('/loading', async (c) => {
-//   const txId = c.transactionId ? c.transactionId : '0x';
-//   const fid = c.frameData?.fid;
-//   const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
+app.frame('/loading', async (c) => {
+  const txId = c.transactionId ? c.transactionId : '0x';
+  const fid = c.frameData?.fid;
 
-//   if (txId !== '0x') {
-//     try {
-//       const transactionReceipt = await publicClient.waitForTransactionReceipt({
-//         hash: txId as `0x${string}`,
-//       });
+  if (txId !== '0x') {
+    try {
+      const transactionReceipt = await publicClient.waitForTransactionReceipt({
+        hash: txId as `0x${string}`,
+      });
 
-//       console.log(transactionReceipt);
+      console.log(transactionReceipt);
 
-//       if (transactionReceipt && transactionReceipt.status == 'reverted') {
-//         return c.error({ message: 'Transaction failed' });
-//       }
+      if (transactionReceipt && transactionReceipt.status == 'reverted') {
+        return c.error({ message: 'Transaction failed' });
+      }
 
-//       if (transactionReceipt?.status === 'success') {
-//         // add a function to create a new pokemon for the user in our backend
-//         const data = await assignPokemonToUser(fid!, verifiedAddresses[0], txId as `0x${string}`)
-//         const report = data.reports[0].payload;
-//         const str = JSON.parse(fromHex(report, 'string')).message; // { message: "Player 1 created with pokemon 2" }
-//         const pokemonId = str.pokemonId;
+      if (transactionReceipt?.status === 'success') {
+        // add a function to create a new pokemon for the user in our backend
+        const data = await assignPokemonToUser(fid!, txId as `0x${string}`)
+        const report = data.reports[0].payload;
+        const str = JSON.parse(fromHex(report, 'string')).message; // { message: "Player 1 created with pokemon 2" }
+        const pokemonId = str.pokemonId;
 
-//         return c.res({
-//           title,
-//           image: `/pokeball.gif`,
-//           imageAspectRatio: '1:1',
-//           intents: [
-//             <Button action={`/gotcha/${pokemonId}`}>CATCH</Button>,
-//             <Button action={`/`}>RESET</Button>,
-//           ],
-//         })
-//       }
-//     } catch (error) {
-//       console.log(error)
-//     }
-//   }
-//   return c.res({
-//     title,
-//     image: `/loading.gif`,
-//     imageAspectRatio: '1:1',
-//     intents: [
-//       <Button action={`/loading`}>REFRESH 🔄️</Button>,
-//     ],
-//   })
-// })
+        return c.res({
+          title,
+          image: `/pokeball.gif`,
+          imageAspectRatio: '1:1',
+          intents: [
+            <Button action={`/gotcha/${pokemonId}`}>CATCH</Button>,
+            <Button action={`/`}>RESET</Button>,
+          ],
+        })
+      }
+    } catch (error) {
+      console.log(error)
+    }
+  }
+  return c.res({
+    title,
+    image: `/loading.gif`,
+    imageAspectRatio: '1:1',
+    intents: [
+      <Button action={`/loading`}>REFRESH 🔄️</Button>,
+    ],
+  })
+})
 
 //// @todo ////
 // -> mint a NFT on the mainnet for the appContract address 

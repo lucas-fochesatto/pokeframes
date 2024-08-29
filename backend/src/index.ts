@@ -43,8 +43,8 @@ type AdvanceRequestHandler = (
 const rollupServer = process.env.ROLLUP_HTTP_SERVER_URL;
 console.log("HTTP rollup_server url is " + rollupServer);
 
-const sendReport = async (message: any) => {
-  const payload = toHex(JSON.stringify({ message }));
+const sendReport = async (object: any) => {
+  const payload = toHex(JSON.stringify(object));
   try {
     const inspect_req = await fetch(rollup_server + '/report', {
       method: 'POST',
@@ -143,14 +143,14 @@ const handleInspect: InspectRequestHandler = async (data) => {
     const playerId = inspectPayload.senderId;
     if(playerId) {
       await handleBattleCreation(playerId);
-      if(await sendReport(`Battle created for ${playerId}`)) return "accept"; 
+      if(await sendReport({message: `Battle created for ${playerId}`})) return "accept"; 
     }
   } else if(action === 'get-user-pokemons') {
     const playerId = inspectPayload.senderId;
     const playerInventory = await db.get('SELECT inventory FROM players WHERE playerid = ?', [playerId]);
     const player = await db.all('SELECT * FROM players WHERE playerid = ?', [playerId]);
 
-    if(await sendReport(`User ${player} has ${playerInventory}`)) return "accept";
+    if(await sendReport({message: `User ${player[0]} has ${playerInventory}`, iventory: playerInventory})) return "accept";
   }
 
   return "reject";
