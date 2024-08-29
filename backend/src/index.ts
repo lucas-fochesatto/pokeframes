@@ -1,7 +1,8 @@
 import createClient from "openapi-fetch";
 import { components, paths } from "./schema";
 
-import { fromHex, toHex } from 'viem'
+import { fromHex, toHex, verifyMessage } from 'viem'
+import { privateKeyToAccount } from 'viem/accounts'
 
 // Importing and initializing DB
 const { Database } = require("node-sqlite3-wasm");
@@ -44,7 +45,7 @@ const rollupServer = process.env.ROLLUP_HTTP_SERVER_URL;
 console.log("HTTP rollup_server url is " + rollupServer);
 
 const sendReport = async (object: any) => {
-  const payload = toHex(JSON.stringify(object));
+  const payload = toHex(JSON.stringify({ object }));
   try {
     const inspect_req = await fetch(rollup_server + '/report', {
       method: 'POST',
@@ -113,7 +114,11 @@ const handleAdvance: AdvanceRequestHandler = async (data) => {
     const action = advancePayload.action;
 
     if(action === 'mint-pokemon') {
-      const { pokemonId, senderId, senderWallet } = advancePayload;
+      const { senderId, senderWallet } = advancePayload;
+
+      const pokemonId = data.metadata.timestamp % 25 + 1;
+      console.log(pokemonId);
+
       await assignPokemon(senderId, senderWallet, pokemonId);
     }
 
@@ -128,6 +133,7 @@ const handleAdvance: AdvanceRequestHandler = async (data) => {
     return "accept";
 
   } catch (e) {
+    console.log(e);
     console.log(`Error executing parameters: "${payload}"`);
     return "reject";
   }
@@ -147,10 +153,14 @@ const handleInspect: InspectRequestHandler = async (data) => {
     }
   } else if(action === 'get-user-pokemons') {
     const playerId = inspectPayload.senderId;
-    const playerInventory = await db.get('SELECT inventory FROM players WHERE playerid = ?', [playerId]);
-    const player = await db.all('SELECT * FROM players WHERE playerid = ?', [playerId]);
+    const playerInventory = await db.all('SELECT inventory FROM players WHERE playerid = ?', [playerId]);
+    console.log(`Player inventory is ${playerInventory}`);
 
-    if(await sendReport({message: `User ${player[0]} has ${playerInventory}`, iventory: playerInventory})) return "accept";
+    const player = await db.all('SELECT * FROM players WHERE playerid = ?', [playerId]);
+    console.log(`Player is ${player}`);
+    console.log(`Player0 is ${player[0]}`);
+
+    if(await sendReport(playerInventory[0])) return "accept";
   }
 
   return "reject";

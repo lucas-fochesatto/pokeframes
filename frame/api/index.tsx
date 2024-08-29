@@ -347,12 +347,10 @@ app.frame('/loading', async (c) => {
       }
 
       if (transactionReceipt?.status === 'success') {
-        //// TODO function to generate a random pokemon id
-        //// uncomment when database is ready
-        // const data = await assignPokemonToUser(fid!, txId as `0x${string}`)
-        // const report = data.reports[0].payload;
-        // const str = JSON.parse(fromHex(report, 'string')).message; // { message: "Player 1 created with pokemon 2" }
-        // const pokemonId = str.pokemonId;
+        const data = await assignPokemonToUser(fid!, txId as `0x${string}`)
+        const report = data.reports[0].payload;
+        const str = JSON.parse(fromHex(report, 'string')).message; // { message: "Player 1 created with pokemon 2" }
+        const pokemonId = str.pokemonId;
         const pokemonId = 1;
         return c.res({
           title,
