@@ -29,12 +29,28 @@ export const assignPokemonToUser = async (senderId: number, hash: `0x${string}`)
   }
 }
 
-export const getPokemonsByPlayerId = async (playerId: `0x${string}`) => {
-  const payload = toHex(JSON.stringify({ action: 'get-user-pokemons', msgSender: playerId }))
-
-  const response = await fetch(`${BACKEND_INSPECT_URL}/${payload}`);
+export const getPokemonsByPlayerId = async (senderId: number, selectedPokemons: number[] = []) => {
+  const response = await fetch(`${BACKEND_URL}/user/${senderId}/pokemons`);
 
   const data = await response.json();
 
-  return data;
+  const inventory = data.inventory as number[];
+
+  // gotta remove the selected pokemons from the inventory
+  selectedPokemons.forEach(pokemonId => {
+    const index = inventory.indexOf(pokemonId);
+    if(index > -1) {
+      inventory.splice(index, 1);
+    }
+  });
+
+  return inventory; // { "inventory": [ 25, 25, 1, 10 ] }
+}
+
+export const getPokemonImage = async (pokemonId : number) => {
+  const response = await fetch(`${BACKEND_URL}/pokemon/${pokemonId}/image`);
+
+  const data = await response.json();
+
+  return data.image;
 }

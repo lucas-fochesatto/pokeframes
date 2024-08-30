@@ -8,7 +8,7 @@ import { handle } from 'frog/vercel';
 import { serve } from '@hono/node-server';
 // import { BACKEND_URL } from '../constant/config.js';
 import { BlankInput } from 'hono/types';
-// import { assignPokemonToUser, getGameInfoByGameId, getPokemonsByPlayerId } from '../lib/database.js';
+import { assignPokemonToUser, getGameInfoByGameId, getPokemonImage, getPokemonsByPlayerId } from '../lib/database.js';
 import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title } from '../constant/config.js';
 import { boundIndex } from '../lib/utils/boundIndex.js';
 import { fromHex } from 'viem';
@@ -19,6 +19,7 @@ type State = {
   verifiedAddresses?: `0x${string}`[];
   pfp_url: any;
   userName: any;
+  selectedPokemons?: number[];
 }
 
 export const app = new Frog<{ State: State }>({
@@ -92,16 +93,61 @@ app.frame('/battle', async (c) => {
   })
 })
 
-app.frame('/pokemons/:pokemonId/:index', async (c) => {
+app.frame('/pokemons/:position/:index', async (c) => {
   const { frameData } = c;
   const fid = frameData?.fid;
-  const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
-  const playerAddress = verifiedAddresses[0] as `0x${string}`;
-  const pokemonId = Number(c.req.param('pokemonId')) || 0;
-  const playerPokemons = ['1', '2'];
+  const position = Number(c.req.param('position'));
+
+  // fetch user pokemons
+  const selectedPokemons = c.previousState?.selectedPokemons || [];
+  const playerPokemons = await getPokemonsByPlayerId(fid!, selectedPokemons);
+  // TODO: check if user has 3 or more pokemons
+  console.log(playerPokemons)
+
+  const pokemonId = playerPokemons[position];
+  console.log(pokemonId)
   const totalPlayerPokemons = playerPokemons.length;
   const index = Number(c.req.param('index'));
-  if (index == 3) {
+  const image = await getPokemonImage(pokemonId);
+
+  return c.res({
+    title,
+    image,
+    imageAspectRatio: '1:1',
+    intents: [
+      <Button action={`/pokemons/${boundIndex(position - 1, totalPlayerPokemons)}/${index}`}>⬅️</Button>,
+      <Button action={`/pokemons/${boundIndex(position + 1, totalPlayerPokemons)}/${index}`}>➡️</Button>,
+      <Button action={`/pokemons/${boundIndex(position, totalPlayerPokemons)}/${index}/confirm`}>✅</Button>,
+      <Button action={`/`}>BACK 🏠</Button>,
+    ],
+  })
+})
+
+app.frame('/pokemons/:position/:index/confirm', async (c) => {
+  const { frameData } = c;
+  const fid = frameData?.fid;
+  
+  const position = Number(c.req.param('position'));
+  const playerPokemons = await getPokemonsByPlayerId(fid!);
+
+  // fetch user pokemons
+  const selectedPokemons = c.previousState?.selectedPokemons || [];
+  selectedPokemons.push(playerPokemons[position]);
+
+  c.deriveState((prevState: any) => {
+    prevState.selectedPokemons = selectedPokemons;
+  });
+
+  playerPokemons.splice(position, 1);
+
+  // TODO: check if user has 3 or more pokemons
+
+  const pokemonId = playerPokemons[position];
+  const totalPlayerPokemons = playerPokemons.length;
+  const index = Number(c.req.param('index'));
+  const image = await getPokemonImage(pokemonId);
+
+  if(index == 2) {
     return c.res({
       title,
       image: `/pokeball.gif`,
@@ -111,31 +157,19 @@ app.frame('/pokemons/:pokemonId/:index', async (c) => {
         <Button action={`/`}>BACK 🏠</Button>,
       ],
     })
-  } if (pokemonId == 0) {
-    return c.res({
-      title,
-      image: `/${playerPokemons[pokemonId]}.png`,
-      imageAspectRatio: '1:1',
-      intents: [
-        <Button action={`/pokemons/${boundIndex(pokemonId - 1, totalPlayerPokemons)}/${index}`}>⬅️</Button>,
-        <Button action={`/pokemons/${boundIndex(pokemonId + 1, totalPlayerPokemons)}/${index}`}>➡️</Button>,
-        <Button action={`/pokemons/${boundIndex(pokemonId, totalPlayerPokemons)}/${index + 1}`}>✅</Button>,
-        <Button action={`/`}>BACK 🏠</Button>,
-      ],
-    })
-  } else {
-    return c.res({
-      title,
-      image: `/${playerPokemons[pokemonId]}.png`,
-      imageAspectRatio: '1:1',
-      intents: [
-        <Button action={`/pokemons/${boundIndex(pokemonId - 1, totalPlayerPokemons)}/${index}`}>⬅️</Button>,
-        <Button action={`/pokemons/${boundIndex(pokemonId + 1, totalPlayerPokemons)}/${index}`}>➡️</Button>,
-        <Button action={`/pokemons/${boundIndex(pokemonId, totalPlayerPokemons)}/${index + 1}`}>✅</Button>,
-        <Button action={`/`}>BACK 🏠</Button>,
-      ],
-    })
   }
+
+  return c.res({
+    title,
+    image,
+    imageAspectRatio: '1:1',
+    intents: [
+      <Button action={`/pokemons/${boundIndex(position - 1, totalPlayerPokemons)}/${index+1}`}>⬅️</Button>,
+      <Button action={`/pokemons/${boundIndex(position + 1, totalPlayerPokemons)}/${index+1}`}>➡️</Button>,
+      <Button action={`/pokemons/${boundIndex(position, totalPlayerPokemons)}/${index+1}/confirm`}>✅</Button>,
+      <Button action={`/`}>BACK 🏠</Button>,
+    ],
+  })
 })
 
 app.frame('/battle/handle/:gameId/:txid', async (c) => {
@@ -352,7 +386,6 @@ app.frame('/loading', async (c) => {
         const report = data.reports[0].payload;
         const str = JSON.parse(fromHex(report, 'string')).message; // { message: "Player 1 created with pokemon 2" }
         const pokemonId = str.pokemonId;
-        const pokemonId = 1;
         return c.res({
           title,
           image: `/pokeball.gif`,
