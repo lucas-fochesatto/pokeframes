@@ -12,6 +12,8 @@ import { BlankInput } from 'hono/types';
 import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title } from '../constant/config.js';
 import { boundIndex } from '../lib/utils/boundIndex.js';
 import { fromHex } from 'viem';
+import { generateGame, generateFight } from '../image-generation/generators.js';
+import { Attack } from '../types/types.js';
 
 type State = {
   verifiedAddresses?: `0x${string}`[];
@@ -64,7 +66,7 @@ app.frame('/verify', async (c) => {
   }
   return c.res({
     title,
-    image: '/ok.jpg',
+    image: '/ok.png',
     imageAspectRatio: '1:1',
     intents: [
       <Button action={`/battle`}>BATTLE</Button>,
@@ -96,9 +98,6 @@ app.frame('/pokemons/:pokemonId/:index', async (c) => {
   const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
   const playerAddress = verifiedAddresses[0] as `0x${string}`;
   const pokemonId = Number(c.req.param('pokemonId')) || 0;
-
-  
-
   const playerPokemons = ['1', '2'];
   const totalPlayerPokemons = playerPokemons.length;
   const index = Number(c.req.param('index'));
@@ -171,7 +170,7 @@ app.frame('/battle/handle/:gameId/:txid', async (c) => {
       imageAspectRatio: '1:1',
       intents: [
         <Button.Link href={`${SHARE_INTENT}${SHARE_TEXT}${SHARE_EMBEDS}${FRAME_URL}/battle/handle/${gameId}/${c.transactionId}`}>SHARE</Button.Link>,
-        <Button action={`/battle/${gameId}`}>REFRESH</Button>,
+        <Button action={`/battle/${gameId}`}>BATTLE!</Button>,
       ],
     })
   }
@@ -220,7 +219,7 @@ const battleFrame = async (
     {
       State: State;
     },
-    '/battle/:gameId' | '/battle/random',
+    '/battle/:gameId',
     BlankInput
   >,
   gameId: string
@@ -240,38 +239,22 @@ const battleFrame = async (
 
   return c.res({
     title,
-    image: 'https://i.imgur.com/Izd0SLP.png',
+    image: '/image/vs/',
     imageAspectRatio: '1:1',
     intents: [
       <Button action={`/battle/${gameId}/fight`}>FIGHT</Button>,
-      <Button action={`/battle/${gameId}/pokemon`}>POKEMON</Button>,
+      <Button action={`/battle/${gameId}/pokemon/0`}>POKEMON</Button>,
       <Button action={`/battle/${gameId}/run`}>RUN</Button>
     ]
   })
 }
 
-// app.frame('/battle/:gameId/fight', async (c) => {
-//   const gameId = c.req.param('gameId') as string;
-//   // const img = await generateGame(`pikachu`,`chupacu`,10,20,30,50);
-//   return c.res({
-//     title,
-//     image: 'https://i.imgur.com/Izd0SLP.png',
-//     imageAspectRatio: '1:1',
-//     intents: [
-//       <Button action={`/battle/${gameId}`}>1</Button>,
-//       <Button action={`/battle/${gameId}`}>2</Button>,
-//       <Button action={`/battle/${gameId}`}>3</Button>,
-//       <Button action={`/battle/${gameId}`}>↩️</Button>
-//     ]
-//   })
-// });
-
 app.frame('/battle/:gameId/fight', async (c) => {
   const gameId = c.req.param('gameId') as string;
-  // const img = await generateGame(`pikachu`,`chupacu`,10,20,30,50);
+  // TODO: a function to update the battle log and status
   return c.res({
     title,
-    image: '',
+    image: '/image/fight',
     imageAspectRatio: '1:1',
     intents: [
       <Button action={`/battle/${gameId}`}>1</Button>,
@@ -282,11 +265,13 @@ app.frame('/battle/:gameId/fight', async (c) => {
   })
 });
 
-app.frame('/battle/:gameId/pokemon', async (c) => {
+app.frame('/battle/:gameId/pokemon/:id', async (c) => {
+  const id = c.req.param('id') as string;
   const gameId = c.req.param('gameId') as string;
+  // TODO make a get for pokemons in the battle and a set for the active pokemon
   return c.res({
     title,
-    image: 'https://i.imgur.com/Izd0SLP.png',
+    image: '/image/fight',
     imageAspectRatio: '1:1',
     intents: [
       <Button action={`/battle/${gameId}`}>🔄️</Button>,
@@ -298,6 +283,7 @@ app.frame('/battle/:gameId/pokemon', async (c) => {
 
 app.frame('/battle/:gameId/run', async (c) => {
   const gameId = c.req.param('gameId') as string;
+  //TODO Backend function to set a winner and end the battle 
   return c.res({
     title,
     image: '/RUN.png',
@@ -362,12 +348,13 @@ app.frame('/loading', async (c) => {
       }
 
       if (transactionReceipt?.status === 'success') {
-        // add a function to create a new pokemon for the user in our backend
-        const data = await assignPokemonToUser(fid!, txId as `0x${string}`)
-        const report = data.reports[0].payload;
-        const str = JSON.parse(fromHex(report, 'string')).message; // { message: "Player 1 created with pokemon 2" }
-        const pokemonId = str.pokemonId;
-
+        //// TODO function to generate a random pokemon id
+        //// TODO uncomment when database is ready
+        // const data = await assignPokemonToUser(fid!, txId as `0x${string}`)
+        // const report = data.reports[0].payload;
+        // const str = JSON.parse(fromHex(report, 'string')).message; // { message: "Player 1 created with pokemon 2" }
+        // const pokemonId = str.pokemonId;
+        const pokemonId = 1;
         return c.res({
           title,
           image: `/pokeball.gif`,
@@ -392,10 +379,7 @@ app.frame('/loading', async (c) => {
   })
 })
 
-//// @todo ////
-// -> mint a NFT on the mainnet for the appContract address 
-// -> associate the user to the pokemon in our database (cartesi) 
-// -> associate ownership to the user when he withdraws his NFT
+
 app.transaction('/mint', (c) => {
   const mintCost = '0.000777';
   return c.send({
@@ -439,7 +423,7 @@ app.frame('/share/:pokemonId', (c) => {
   })
 })
 
-//// @todo ////
+//// TODO nothing has been done in this frame so... 
 app.frame('/scores', (c) => {
   return c.res({
     title,
@@ -451,18 +435,16 @@ app.frame('/scores', (c) => {
   })
 })
 
-
-// test frame routing
-app.frame('/vs', (c) => {
-  return c.res({
-    title,
-    image: '/image/vs/',
-    imageAspectRatio: '1:1',
-    intents: [
-      <Button action={`/vs`}>Refresh</Button>,
-    ],
-  })
-})
+// app.frame('/vs', (c) => {
+//   return c.res({
+//     title,
+//     image: '/image/vs/',
+//     imageAspectRatio: '1:1',
+//     intents: [
+//       <Button action={`/vs`}>Refresh</Button>,
+//     ],
+//   })
+// })
 
 // test routing with dynamic img
 app.hono.get('/image/vs', async (c) => {
@@ -479,110 +461,20 @@ app.hono.get('/image/vs', async (c) => {
   }
 });
 
-const generateGame = async (
-  pokemon1Name: string,
-  pokemon2Name: string,
-  totalHP1: number,
-  currentHp1: number,
-  totalHP2: number,
-  currentHp2: number
-) => {
+app.hono.get('/image/fight', async (c) => {
   try {
+    const attacks = [{atk: 'Light', type: {name:'normal', color:'000000'}, PP:20}, {atk: 'Light', type: {name:'normal', color:'000000'}, PP:20}, {atk: 'Light', type: {name:'normal', color:'000000'}, PP:20}] as Attack[];
+    const image = await generateFight('pikachu', 20, 20, attacks)
 
-    // have to rewrite this a little better later (and maybe do it in a separate file as a function)
-    const gameComponents = (() => {
-      const components = [];
-
-      // SVG box card
-      const card1SVG = `
-        <svg width="255" height="100">
-          <rect x="2" y="2" width="220" height="80" rx="12" fill="#3D3359" stroke="#5A534B" stroke-width="3"/>
-        </svg>
-      `;
-      const card2SVG = `
-        <svg width="255" height="100">
-          <rect x="2" y="2" width="220" height="80" rx="12" fill="#3D3359" stroke="#5A534B" stroke-width="3"/>
-        </svg>
-      `;
-
-      components.push({ input: Buffer.from(card1SVG), top: 440, left: 335 });
-      components.push({ input: Buffer.from(card2SVG), top: 40, left: 35 });
-
-      // Create SVG overlays for health bars
-      const hpBarSize = 200;
-      const hp1Width = (currentHp1 / totalHP1) * hpBarSize;
-      const hp2Width = (currentHp2 / totalHP2) * hpBarSize;
-
-      const hp1SVG = `
-      <svg width="200" height="100">
-        <rect width="${hp1Width}" height="10" fill="${(hp1Width < 46) ? 'red' : 'green'}"/>
-        <rect x="${hp1Width}" width="${hpBarSize - hp1Width}" height="12" fill="black"/>
-        <text x="170" y="35" text-anchor="middle" font-family="Arial" font-size="24" fill="white">${currentHp1}/${totalHP1}</text>
-      </svg>
-      `;
-      const hp2SVG = `
-      <svg width="200" height="100">
-        <rect width="${hp2Width}" height="10" fill="${(hp2Width < 46) ? 'red' : 'green'}"/>
-        <rect x="${hp2Width}" width="${hpBarSize - hp2Width}" height="12" fill="black"/>
-        <text x="170" y="35" text-anchor="middle" font-family="Arial" font-size="24" fill="white">${currentHp2}/${totalHP2}</text>
-      </svg>
-      `;
-
-      components.push({ input: Buffer.from(hp1SVG), top: 480, left: 350 });
-      components.push({ input: Buffer.from(hp2SVG), top: 80, left: 50 });
-
-      // Create SVG overlays for Pokemon names (monkey)
-      const pokemon1SVG = `
-        <svg width="200" height="75">
-          <text x="50" y="25" text-anchor="middle" font-family="Arial" font-size="25" fill="white">${pokemon1Name}</text>
-        </svg>
-      `;
-      const pokemon2SVG = `
-        <svg width="200" height="75">
-          <text x="50" y="25" text-anchor="middle" font-family="Arial" font-size="25" fill="white">${pokemon2Name}</text>
-        </svg>
-      `;
-
-      components.push({ input: Buffer.from(pokemon1SVG), top: 445, left: 350 });
-      components.push({ input: Buffer.from(pokemon2SVG), top: 45, left: 50 });
-
-      return components;
-    })
-
-    const baseImageBuffer = await sharp('./public/pokemon-battle.png')
-      .resize(600, 600)
-      .png()
-      .toBuffer();
-
-    const gameComponentsArray = gameComponents();
-
-    const pokemon1ImageBuffer = await sharp('./public/1.png')
-      .resize(200, 200)
-      .png()
-      .toBuffer();
-
-    const pokemon2ImageBuffer = await sharp('./public/2.png')
-      .resize(200, 200)
-      .png()
-      .toBuffer();
-
-    gameComponentsArray.push({ input: pokemon1ImageBuffer, top: 350, left: 50 });
-    gameComponentsArray.push({ input: pokemon2ImageBuffer, top: 50, left: 350 });
-
-    const finalImage = await sharp(baseImageBuffer)
-      .composite(gameComponentsArray)
-      .png()
-      .toBuffer();
-
-    // console.log("Final image composed successfully");
-
-    return finalImage;
+    return c.newResponse(image, 200, {
+      'Content-Type': 'image/png',
+      'Cache-Control': 'max-age=0', //try no-cache later
+    });
   } catch (error) {
-    console.error("Error during game generation:", error);
-    throw error;
+    console.error("Error generating image:", error);
+    return c.newResponse("Error generating image", 500);
   }
-};
-
+});
 
 if (process.env.NODE_ENV !== 'production') {
   devtools(app, { serveStatic });
