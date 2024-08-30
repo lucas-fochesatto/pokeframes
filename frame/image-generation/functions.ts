@@ -4,8 +4,8 @@ export const moves =((
     attackName: string
   ) => {
         return (
-        `<svg width="200" height="65">
-        <text x="5" y="32" text-anchor="middle" font-family="Handjet" font-size="35" fill="white">${attackName}</text>
+        `<svg width="300" height="65">
+        <text x="50" y="25" text-anchor="middle" font-family="Handjet" font-size="32" fill="white">${attackName}</text>
         </svg>`
         )
   })
@@ -16,7 +16,7 @@ export const typeBox = ((
         return(
         `
             <svg width="98" height="36">
-            <rect width="98" height="36" fill="#919191"/>
+            <rect width="98" height="36" fill="#${attackType.type.color}"/>
             </svg>
         `
         )
@@ -26,8 +26,8 @@ export const attackType = ((
     attackType: Attack
   ) => {
         return(`
-        <svg width="98" height="36">
-            <text x="50" y="25" text-anchor="middle" font-family="Handjet" font-size="35" fill="white">${attackType.type.name}</text>
+        <svg width="400" height="40">
+            <text x="50" y="25" text-anchor="middle" font-family="Handjet" font-size="20" fill="white">${attackType.type.name.toUpperCase()}</text>
         </svg>
         `
         )
@@ -39,7 +39,7 @@ export const pp = ((
   ) => {
         return(`
         <svg width="200" height="75">
-            <text x="50" y="25" text-anchor="middle" font-family="Handjet" font-size="35" fill="white">${currentPP.toString()}/${attackPP.toString()}</text>
+            <text x="50" y="25" text-anchor="middle" font-family="Handjet" font-size="30" fill="white">PP: ${currentPP.toString()}/${attackPP.toString()}</text>
         </svg>
         `)
     })
@@ -54,9 +54,9 @@ export const hpSVG = ((
         const hpWidth = (currentHp / totalHp ) * hpBarSize;
         return (`
             <svg width="200" height="100">
-              <rect width="${hpWidth}" height="10" fill="${(hpWidth < 46) ? 'red' : 'green'}"/>
-              <rect x="${hpWidth}" width="${hpBarSize - hpWidth}" height="12" fill="black"/>
-              <text x="170" y="35" text-anchor="middle" font-family="Arial" font-size="24" fill="white">${currentHp}/${totalHp}</text>
+              <rect width="${hpWidth}" height="30" fill="${(hpWidth < 46) ? 'red' : 'green'}"/>
+              <rect x="${hpWidth}" width="${hpBarSize - hpWidth}" height="32" fill="black"/>
+              <text x="145" y="55" text-anchor="middle" font-family="Arial" font-size="24" fill="white">HP:${currentHp}/${totalHp}</text>
             </svg> 
         `)
     })

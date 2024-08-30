@@ -1,6 +1,6 @@
 import sharp from "sharp";
 import { Attack } from "../types/types";
-import { hpSVG, moves, pokemonSVG } from "./functions";
+import { attackType, hpSVG, moves, pokemonSVG, typeBox } from "./functions";
 
 export const generateGame = async (
     pokemon1Name: string,
@@ -86,11 +86,11 @@ export const generateFight = async (
       const fightComponents = (() => {
         const components = [];
         const sentence = `        
-          <svg width="430" height="65">
-            <text x="10" y="32" text-anchor="middle" font-family="Handjet" font-size="35" fill="white">What will ${pokemonName} do?</text>
+          <svg width="600" height="65">
+            <text x="164" y="32" text-anchor="middle" font-family="Handjet" font-size="30" fill="white">What will ${pokemonName} do?</text>
           </svg>
         `;
-        components.push({ input: Buffer.from(sentence), top: 33, left: 52 });
+        components.push({ input: Buffer.from(sentence), top: 40, left: 60 });
         const atk1 = moves(attacks[0].atk);
         const atk2 = moves(attacks[1].atk);
         const atk3 = moves(attacks[2].atk);
@@ -100,11 +100,17 @@ export const generateFight = async (
           </svg>         
         `
         const hp1SVG = hpSVG(currentHp, totalHp);
-        components.push({ input: Buffer.from(atk1), top: 170, left: 126 });
-        components.push({ input: Buffer.from(atk2), top: 170, left: 393 });
-        components.push({ input: Buffer.from(atk3), top: 300, left: 126 });
-        components.push({ input: Buffer.from(back), top: 317, left: 394 });
-        components.push({ input: Buffer.from(hp1SVG), top: 466, left: 180 });
+        components.push({ input: Buffer.from(atk1), top: 190, left: 110 });
+        components.push({ input: Buffer.from(atk2), top: 190, left: 383 });
+        components.push({ input: Buffer.from(atk3), top: 320, left: 110 });
+        components.push({ input: Buffer.from(back), top: 338, left: 385 });
+        components.push({ input: Buffer.from(hp1SVG), top: 480, left: 180 });
+        components.push({  input: Buffer.from(typeBox(attacks[0])), top:228, left:58 });
+        components.push({  input: Buffer.from(attackType(attacks[0])), top:228, left:58 });
+        components.push({  input: Buffer.from(typeBox(attacks[1])), top:228, left:323 });
+        components.push({  input: Buffer.from(attackType(attacks[0])), top:228, left:323 });
+        components.push({  input: Buffer.from(typeBox(attacks[2])), top:357, left:58 });
+        components.push({  input: Buffer.from(attackType(attacks[0])), top:357, left:58 });
         return components;
      })
 
@@ -118,7 +124,7 @@ export const generateFight = async (
     .png()
     .toBuffer();
 
-    fightComponentsArray.push({input: pokemon1ImageBuffer, top: 40, left: 438});
+    fightComponentsArray.push({input: pokemon1ImageBuffer, top: 438, left: 41});
     const finalImage = await sharp(baseImageBuffer)
     .composite(fightComponentsArray)
     .png()

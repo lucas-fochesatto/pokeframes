@@ -463,7 +463,7 @@ app.hono.get('/image/vs', async (c) => {
 
 app.hono.get('/image/fight', async (c) => {
   try {
-    const attacks = [{atk: 'light', type: {name:'normal', color:'000000'}, PP:20}, {atk: 'light', type: {name:'normal', color:'000000'}, PP:20}, {atk: 'light', type: {name:'normal', color:'000000'}, PP:20}] as Attack[];
+    const attacks = [{atk: 'Light', type: {name:'normal', color:'000000'}, PP:20}, {atk: 'Light', type: {name:'normal', color:'000000'}, PP:20}, {atk: 'Light', type: {name:'normal', color:'000000'}, PP:20}] as Attack[];
     const image = await generateFight('pikachu', 20, 20, attacks)
 
     return c.newResponse(image, 200, {
