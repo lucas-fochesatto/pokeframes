@@ -20,6 +20,7 @@ type State = {
   pfp_url: any;
   userName: any;
   selectedPokemons?: number[];
+  currentTxId?: `0x${string}`;
 }
 
 export const app = new Frog<{ State: State }>({
@@ -124,14 +125,38 @@ app.frame('/pokemons/:position/:index', async (c) => {
 })
 
 app.frame('/pokemons/:position/:index/confirm', async (c) => {
+  const index = Number(c.req.param('index'));
   const { frameData } = c;
   const fid = frameData?.fid;
   
   const position = Number(c.req.param('position'));
-  const playerPokemons = await getPokemonsByPlayerId(fid!);
+
+  if(index == 2) {
+    // fetch user pokemons
+    const selectedPokemons = c.previousState?.selectedPokemons || [];
+
+    const playerPokemons = await getPokemonsByPlayerId(fid!, selectedPokemons);
+    selectedPokemons.push(playerPokemons[position]);
+  
+    c.deriveState((prevState: any) => {
+      prevState.selectedPokemons = selectedPokemons;
+    });
+
+    return c.res({
+      title,
+      image: `/pokeball.gif`,
+      imageAspectRatio: '1:1',
+      intents: [
+        <Button.Transaction action={`/battle/handle/0/0x`} target='/create-battle'>✅</Button.Transaction>,
+        <Button action={`/`}>BACK 🏠</Button>,
+      ],
+    })
+  }
 
   // fetch user pokemons
   const selectedPokemons = c.previousState?.selectedPokemons || [];
+
+  const playerPokemons = await getPokemonsByPlayerId(fid!, selectedPokemons);
   selectedPokemons.push(playerPokemons[position]);
 
   c.deriveState((prevState: any) => {
@@ -139,25 +164,13 @@ app.frame('/pokemons/:position/:index/confirm', async (c) => {
   });
 
   playerPokemons.splice(position, 1);
+  console.log(playerPokemons)
 
   // TODO: check if user has 3 or more pokemons
 
   const pokemonId = playerPokemons[position];
   const totalPlayerPokemons = playerPokemons.length;
-  const index = Number(c.req.param('index'));
   const image = await getPokemonImage(pokemonId);
-
-  if(index == 2) {
-    return c.res({
-      title,
-      image: `/pokeball.gif`,
-      imageAspectRatio: '1:1',
-      intents: [
-        <Button.Transaction action={`/battle/handle/0/0x`} target='/mint'>✅</Button.Transaction>,
-        <Button action={`/`}>BACK 🏠</Button>,
-      ],
-    })
-  }
 
   return c.res({
     title,
@@ -203,7 +216,7 @@ app.frame('/battle/handle/:gameId/:txid', async (c) => {
       image: `/ok.jpg`,
       imageAspectRatio: '1:1',
       intents: [
-        <Button.Link href={`${SHARE_INTENT}${SHARE_TEXT}${SHARE_EMBEDS}${FRAME_URL}/battle/handle/${gameId}/${c.transactionId}`}>SHARE</Button.Link>,
+        <Button.Link href={`${SHARE_INTENT}/${SHARE_TEXT}/${SHARE_EMBEDS}/${FRAME_URL}/battle/handle/${gameId}/${c.transactionId}`}>SHARE</Button.Link>,
         <Button action={`/battle/${gameId}`}>BATTLE!</Button>,
       ],
     })
@@ -368,11 +381,22 @@ app.frame('/new', (c) => {
 app.frame('/loading', async (c) => {
   const txId = c.transactionId ? c.transactionId : '0x';
   const fid = c.frameData?.fid;
+  let currentTx : `0x${string}` = '0x';
 
-  if (txId !== '0x') {
+  console.log(txId);
+  if(txId !== '0x') {
+    c.deriveState((prevState: any) => {
+      prevState.currentTxId = txId;
+      currentTx = txId;
+    })
+  } else {
+    currentTx = c.previousState?.currentTxId!;
+  }
+
+  if (currentTx !== '0x') {
     try {
-      const transactionReceipt = await publicClient.waitForTransactionReceipt({
-        hash: txId as `0x${string}`,
+      const transactionReceipt = await publicClient.getTransactionReceipt({
+        hash: currentTx,
       });
 
       console.log(transactionReceipt);
@@ -383,9 +407,8 @@ app.frame('/loading', async (c) => {
 
       if (transactionReceipt?.status === 'success') {
         const data = await assignPokemonToUser(fid!, txId as `0x${string}`)
-        const report = data.reports[0].payload;
-        const str = JSON.parse(fromHex(report, 'string')).message; // { message: "Player 1 created with pokemon 2" }
-        const pokemonId = str.pokemonId;
+        
+        const pokemonId = 25;
         return c.res({
           title,
           image: `/pokeball.gif`,
