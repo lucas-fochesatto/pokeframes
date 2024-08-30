@@ -4,7 +4,7 @@ import getViemNetwork from "./clients/getViemNetwork.js"
 
 export const publicClient = createPublicClient({
     chain: sepolia, // change to zora mainnet
-    transport: http(),
+    transport: http('https://eth-sepolia.g.alchemy.com/v2/pknjO3YajsLq_ZcLfmiwBrzIAjT2dB4W'),
   });
 
 export const getPublicClient = (chainId: number) => {

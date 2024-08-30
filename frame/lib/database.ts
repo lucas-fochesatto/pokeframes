@@ -1,5 +1,4 @@
-import { BACKEND_INSPECT_URL, BACKEND_URL } from "../constant/config";
-import { fromHex, toHex } from 'viem'
+import { BACKEND_URL } from "../constant/config";
 
 export const getGameInfoByGameId = async (id: string) => {
   const response = await fetch(`${BACKEND_URL}/battle/${id}`);
@@ -18,14 +17,10 @@ export const assignPokemonToUser = async (senderId: number, hash: `0x${string}`)
     body: JSON.stringify({ senderId, hash })
   })
 
-  if(response.status === 400) {
-    const data = await response.json();
-    return data.message;
-  }
-  
-  if(response.status === 200) {
-    const data = await response.json();
-    return data;
+  if(response.ok) {
+    return "Pokemon assigned";
+  } else {
+    return "Failed to assign pokemon";
   }
 }
 
@@ -53,4 +48,20 @@ export const getPokemonImage = async (pokemonId : number) => {
   const data = await response.json();
 
   return data.image;
+}
+
+export const createBattle = async (maker: number, maker_pokemons: number[]) => {
+  const response = await fetch(`${BACKEND_URL}/create-battle`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ maker, maker_pokemons })
+  })
+
+  if(response.ok) {
+    return "Battle created";
+  } else {
+    return "Failed to create battle";
+  }
 }
