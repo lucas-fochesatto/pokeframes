@@ -3,13 +3,13 @@ import { components, paths } from "./schema";
 
 import { fromHex, toHex, verifyMessage } from 'viem'
 import { privateKeyToAccount } from 'viem/accounts'
-
 // Importing and initializing DB
 const { Database } = require("node-sqlite3-wasm");
 
 import { InspectPayload, Player } from './interfaces';
 
 import { pokemons } from "../pokemons/allpokemons.js";
+import { MT19937 } from "../lib/MT19937";
 
 const rollup_server = process.env.ROLLUP_HTTP_SERVER_URL;
 
@@ -115,8 +115,9 @@ const handleAdvance: AdvanceRequestHandler = async (data) => {
 
     if(action === 'mint-pokemon') {
       const { senderId, senderWallet } = advancePayload;
-
-      const pokemonId = data.metadata.timestamp % 25 + 1;
+      // const pokemonId = data.metadata.timestamp % 25 + 1;
+      const mt = new MT19937(data.metadata.timestamp);
+      const pokemonId = mt.randomPokemon(1,25);
       console.log(pokemonId);
 
       await assignPokemon(senderId, senderWallet, pokemonId);
