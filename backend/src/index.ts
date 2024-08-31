@@ -22,6 +22,9 @@ try {
   db.run('CREATE TABLE IF NOT EXISTS players (playerid INTEGER PRIMARY KEY, wallet TEXT, inventory TEXT, battles TEXT)');
   db.run('CREATE TABLE IF NOT EXISTS hashes (hash TEXT PRIMARY KEY)');
   db.run('CREATE TABLE IF NOT EXISTS battles (id TEXT PRIMARY KEY, maker TEXT, taker TEXT)');
+
+  db.run('INSERT INTO players (playerid, wallet, inventory, battles) VALUES (?, ?, ?, ?)', [1, '0xsug0u', '[]', '[]']);
+  db.run('UPDATE players SET inventory = ? WHERE playerid = ?', ['[25,24,23,12,16]', 1]);
 } catch (e) {
   console.log('ERROR initializing database: ', e)
 }
@@ -58,23 +61,6 @@ const sendReport = async (object: any) => {
     return true;
   } catch (e) {
     console.log(`Error generating report with binary value "${payload}"`);
-    return false;
-  }
-}
-
-const sendNotice = async (payload: any) => {
-  try {
-    const notice_req = await fetch(rollup_server + '/notice', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ payload })
-    });
-    console.log("Received notice status " + notice_req.status);
-    return true;
-  } catch (e) {
-    console.log(`Error generating notice with binary value "${payload}"`);
     return false;
   }
 }
@@ -121,14 +107,18 @@ const handleAdvance: AdvanceRequestHandler = async (data) => {
       console.log(pokemonId);
 
       await assignPokemon(senderId, senderWallet, pokemonId);
+
+      advancePayload.pokemonId = pokemonId;
     }
+
+    const noticePayload = toHex(JSON.stringify(advancePayload));
 
     const advance_req = await fetch(rollup_server + '/notice', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify({ payload })
+      body: JSON.stringify({ payload: noticePayload })
     });
     console.log("Received notice status ", await advance_req.text());
     return "accept";

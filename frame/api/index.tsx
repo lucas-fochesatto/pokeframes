@@ -22,6 +22,8 @@ type State = {
   selectedPokemons?: number[];
   lastSelectedPokemon?: number;
   currentTxId?: `0x${string}`;
+  isMaker?: boolean;
+  joinableBattleId?: number;
 }
 
 export const app = new Frog<{ State: State }>({
@@ -84,6 +86,12 @@ app.frame('/battle', async (c) => {
   // const fid = frameData?.fid;
   // const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
   // const playerAddress = verifiedAddresses[0] as `0x${string}`;
+
+  // set isMaker to true
+  c.deriveState((prevState: any) => {
+    prevState.isMaker = true;
+  });
+
   return c.res({
     title,
     image: '/battle2.png',
@@ -96,20 +104,59 @@ app.frame('/battle', async (c) => {
 })
 
 app.frame('/pokemons/:position/:index', async (c) => {
-  const { frameData } = c;
+  const { frameData, buttonValue } = c;
   const fid = frameData?.fid;
-  const position = Number(c.req.param('position'));
+  let position = Number(c.req.param('position'));
+  const index = Number(c.req.param('index'));
 
-  // fetch user pokemons
+  if(Number(buttonValue)) {
+    c.deriveState((prevState: any) => {
+      prevState.joinableBattleId = Number(buttonValue);
+      prevState.isMaker = false;
+    });
+  }
+
   const selectedPokemons = c.previousState?.selectedPokemons || [];
   const playerPokemons = await getPokemonsByPlayerId(fid!, selectedPokemons);
-  // TODO: check if user has 3 or more pokemons
-  console.log(playerPokemons)
+  
+  if(buttonValue === 'confirm') {
+    const isMaker = c.previousState?.isMaker!;
+    const joinableBattleId = c.previousState?.joinableBattleId!;
+    const lastSelectedPokemon = c.previousState?.lastSelectedPokemon!;
+    const pokemonId = playerPokemons[lastSelectedPokemon];
+
+    selectedPokemons.push(pokemonId);
+
+    c.deriveState((prevState: any) => {
+      prevState.selectedPokemons = selectedPokemons;
+    });
+
+    console.log(playerPokemons)
+    console.log(selectedPokemons)
+
+    if(index == 3) {
+      return c.res({
+        title,
+        image: `/pokeball.gif`,
+        imageAspectRatio: '1:1',
+        intents: [
+          <Button.Transaction action={`${isMaker ? '/battle/handle' : `/battle/${joinableBattleId}/join`}`} target={`${isMaker ? '/create-battle' : '/join-battle'}`}>✅</Button.Transaction>,
+          <Button action={`/`}>BACK 🏠</Button>,
+        ],
+      })
+    }
+
+    // remove selected pokemon from player pokemons
+    playerPokemons.splice(lastSelectedPokemon, 1);
+  }
 
   const pokemonId = playerPokemons[position];
+
+  // TODO: check if user has 3 or more pokemons
+  console.log(playerPokemons)
   console.log(pokemonId)
+
   const totalPlayerPokemons = playerPokemons.length;
-  const index = Number(c.req.param('index'));
   const image = await getPokemonImage(pokemonId);
 
   c.deriveState((prevState: any) => {
@@ -123,70 +170,7 @@ app.frame('/pokemons/:position/:index', async (c) => {
     intents: [
       <Button action={`/pokemons/${boundIndex(position - 1, totalPlayerPokemons)}/${index}`}>⬅️</Button>,
       <Button action={`/pokemons/${boundIndex(position + 1, totalPlayerPokemons)}/${index}`}>➡️</Button>,
-      <Button action={`/pokemons/0/${index}/confirm`}>✅</Button>,
-      <Button action={`/`}>BACK 🏠</Button>,
-    ],
-  })
-})
-
-app.frame('/pokemons/:position/:index/confirm', async (c) => {
-  const index = Number(c.req.param('index'));
-  const { frameData } = c;
-  const fid = frameData?.fid;
-  
-  const position = Number(c.req.param('position'));
-  const lastSelectedPokemon = c.previousState?.lastSelectedPokemon!;
-
-  if(index == 2) {
-    // fetch user pokemons
-    const selectedPokemons = c.previousState?.selectedPokemons || [];
-
-    const playerPokemons = await getPokemonsByPlayerId(fid!, selectedPokemons);
-    selectedPokemons.push(playerPokemons[lastSelectedPokemon]);
-  
-    c.deriveState((prevState: any) => {
-      prevState.selectedPokemons = selectedPokemons;
-    });
-
-    return c.res({
-      title,
-      image: `/pokeball.gif`,
-      imageAspectRatio: '1:1',
-      intents: [
-        <Button.Transaction action={`/battle/handle`} target='/create-battle'>✅</Button.Transaction>,
-        <Button action={`/`}>BACK 🏠</Button>,
-      ],
-    })
-  }
-
-  // fetch user pokemons
-  const selectedPokemons = c.previousState?.selectedPokemons || [];
-
-  const playerPokemons = await getPokemonsByPlayerId(fid!, selectedPokemons);
-  selectedPokemons.push(playerPokemons[lastSelectedPokemon]);
-
-  c.deriveState((prevState: any) => {
-    prevState.selectedPokemons = selectedPokemons;
-  });
-
-  playerPokemons.splice(lastSelectedPokemon, 1);
-  console.log(playerPokemons)
-
-  // TODO: check if user has 3 or more pokemons
-
-  const pokemonId = playerPokemons[position];
-  console.log(pokemonId)
-  const totalPlayerPokemons = playerPokemons.length;
-  const image = await getPokemonImage(pokemonId);
-
-  return c.res({
-    title,
-    image,
-    imageAspectRatio: '1:1',
-    intents: [
-      <Button action={`/pokemons/${boundIndex(position - 1, totalPlayerPokemons)}/${index+1}`}>⬅️</Button>,
-      <Button action={`/pokemons/${boundIndex(position + 1, totalPlayerPokemons)}/${index+1}`}>➡️</Button>,
-      <Button action={`/pokemons/0/${index+1}/confirm`}>✅</Button>,
+      <Button value='confirm' action={`/pokemons/0/${index+1}`}>✅</Button>,
       <Button action={`/`}>BACK 🏠</Button>,
     ],
   })
@@ -292,13 +276,14 @@ app.frame('/battle/:gameId', async (c) => {
 });
 
 app.frame('/battle/share/:gameId', async (c) => {
-  const gameId = c.req.param('gameId') as string;
+  const gameId = c.req.param('gameId');
+  
   return c.res({
     title,
     image: '/join-battle.png',
     imageAspectRatio: '1:1',
     intents: [
-      <Button action={`/battle/${gameId}`}>BATTLE!</Button>,
+      <Button value={gameId} action='/pokemons/0/0'>BATTLE!</Button>,
     ]
   })
 });
