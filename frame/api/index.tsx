@@ -399,9 +399,10 @@ app.frame('/loading', async (c) => {
       }
 
       if (transactionReceipt?.status === 'success') {
-        const data = await assignPokemonToUser(fid!, txId as `0x${string}`)
+        const pokemonId = await assignPokemonToUser(fid!, txId as `0x${string}`);
+
+        console.log(pokemonId);
         
-        const pokemonId = 25;
         return c.res({
           title,
           image: `/pokeball.gif`,
