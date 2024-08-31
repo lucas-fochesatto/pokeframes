@@ -22,7 +22,6 @@ type State = {
   isMaker?: boolean;
   joinableBattleId?: number;
   isLoading?: boolean;
-  mintedPokemonId?: number;
 }
 
 export const app = new Frog<{ State: State }>({
@@ -461,18 +460,18 @@ app.frame('/loading', async (c) => {
       }
 
       if (transactionReceipt?.status === 'success') {
-        const pokemonId = c.previousState.mintedPokemonId ? c.previousState.mintedPokemonId : await assignPokemonToUser(fid!, currentTx as `0x${string}`);
+        /* const pokemonId = c.previousState.mintedPokemonId ? c.previousState.mintedPokemonId : await assignPokemonToUser(fid!, currentTx as `0x${string}`);
 
         c.deriveState((prevState: any) => {
           prevState.mintedPokemonId = pokemonId;
-        });
+        }); */
 
         return c.res({
           title,
           image: `/pokeball.gif`,
           imageAspectRatio: '1:1',
           intents: [
-            <Button action={pokemonId ? `/gotcha/${pokemonId}` : ''}>CATCH</Button>,
+            <Button action={`/finish-mint`}>CATCH</Button>,
           ],
         })
       }
@@ -490,6 +489,43 @@ app.frame('/loading', async (c) => {
   })
 })
 
+app.frame('/finish-mint', async (c) => {
+  const { frameData } = c;
+  const fid = frameData?.fid;
+  const currentTx = c.previousState?.currentTxId!;
+
+  console.log(currentTx);
+
+  c.deriveState((prevState: any) => {
+    prevState.isLoading = true;
+  });
+
+  const pokemonId = await assignPokemonToUser(fid!, currentTx as `0x${string}`);
+  
+  if(pokemonId === "Already minting") {
+    return c.res({
+      title,
+      image: '/pokeball.gif',
+      imageAspectRatio: '1:1',
+      intents: [
+        <Button action={`/finish-mint`}>WAIT...</Button>,
+      ],
+    })
+  }
+
+  c.deriveState((prevState: any) => {
+    prevState.mintedPokemonId = pokemonId;
+  });
+
+  return c.res({
+    title,
+    image: `/pokeball.gif`,
+    imageAspectRatio: '1:1',
+    intents: [
+      <Button action={`/gotcha/${pokemonId}`}>FINISH!</Button>,
+    ],
+  })
+})
 
 app.transaction('/mint', (c) => {
   const mintCost = '0.000777';
