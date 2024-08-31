@@ -1,6 +1,6 @@
 import { BACKEND_URL } from "../constant/config";
 import { Battle } from "../types/types";
-
+import { fromHex } from 'viem'
 export const getBattleById = async (id: number) => {
   const response = await fetch(`${BACKEND_URL}/battle/${id}`);
 
@@ -12,14 +12,12 @@ export const getBattleById = async (id: number) => {
 export const assignPokemonToUser = async (senderId: number, hash: `0x${string}`) => {
   const response = await fetch(`${BACKEND_URL}/assign-pokemon`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
     body: JSON.stringify({ senderId, hash })
   })
-
+  const data = await response.json()
   if(response.ok) {
-    return "Pokemon assigned";
+    // const pokemonId = fromHex(data.receipt.events[0].args[1].hex, 'string');
+    return fromHex(data.pokemonId.hex, `number`);
   } else {
     return "Failed to assign pokemon";
   }
