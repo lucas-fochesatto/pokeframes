@@ -1,11 +1,12 @@
 import { BACKEND_URL } from "../constant/config";
+import { Battle } from "../types/types";
 
-export const getGameInfoByGameId = async (id: string) => {
+export const getBattleById = async (id: number) => {
   const response = await fetch(`${BACKEND_URL}/battle/${id}`);
 
   const data = await response.json();
 
-  return data;
+  return data as Battle;
 }
 
 export const assignPokemonToUser = async (senderId: number, hash: `0x${string}`) => {
@@ -56,11 +57,15 @@ export const createBattle = async (maker: number, maker_pokemons: number[]) => {
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ maker, maker_pokemons })
+    body: JSON.stringify({ maker, maker_pokemons: JSON.stringify(maker_pokemons) })
   })
 
   if(response.ok) {
-    return "Battle created";
+    const data = await response.json();
+
+    const newBattle = data.newBattle;
+
+    return newBattle.id;
   } else {
     return "Failed to create battle";
   }

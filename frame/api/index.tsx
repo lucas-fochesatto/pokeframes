@@ -8,7 +8,7 @@ import { handle } from 'frog/vercel';
 import { serve } from '@hono/node-server';
 // import { BACKEND_URL } from '../constant/config.js';
 import { BlankInput } from 'hono/types';
-import { assignPokemonToUser, getGameInfoByGameId, getPokemonImage, getPokemonsByPlayerId } from '../lib/database.js';
+import { assignPokemonToUser, createBattle, getBattleById, getPokemonImage, getPokemonsByPlayerId } from '../lib/database.js';
 import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title } from '../constant/config.js';
 import { boundIndex } from '../lib/utils/boundIndex.js';
 import { fromHex } from 'viem';
@@ -20,6 +20,7 @@ type State = {
   pfp_url: any;
   userName: any;
   selectedPokemons?: number[];
+  lastSelectedPokemon?: number;
   currentTxId?: `0x${string}`;
 }
 
@@ -111,6 +112,10 @@ app.frame('/pokemons/:position/:index', async (c) => {
   const index = Number(c.req.param('index'));
   const image = await getPokemonImage(pokemonId);
 
+  c.deriveState((prevState: any) => {
+    prevState.lastSelectedPokemon = position;
+  });
+
   return c.res({
     title,
     image,
@@ -118,7 +123,7 @@ app.frame('/pokemons/:position/:index', async (c) => {
     intents: [
       <Button action={`/pokemons/${boundIndex(position - 1, totalPlayerPokemons)}/${index}`}>⬅️</Button>,
       <Button action={`/pokemons/${boundIndex(position + 1, totalPlayerPokemons)}/${index}`}>➡️</Button>,
-      <Button action={`/pokemons/${boundIndex(position, totalPlayerPokemons)}/${index}/confirm`}>✅</Button>,
+      <Button action={`/pokemons/0/${index}/confirm`}>✅</Button>,
       <Button action={`/`}>BACK 🏠</Button>,
     ],
   })
@@ -130,13 +135,14 @@ app.frame('/pokemons/:position/:index/confirm', async (c) => {
   const fid = frameData?.fid;
   
   const position = Number(c.req.param('position'));
+  const lastSelectedPokemon = c.previousState?.lastSelectedPokemon!;
 
   if(index == 2) {
     // fetch user pokemons
     const selectedPokemons = c.previousState?.selectedPokemons || [];
 
     const playerPokemons = await getPokemonsByPlayerId(fid!, selectedPokemons);
-    selectedPokemons.push(playerPokemons[position]);
+    selectedPokemons.push(playerPokemons[lastSelectedPokemon]);
   
     c.deriveState((prevState: any) => {
       prevState.selectedPokemons = selectedPokemons;
@@ -147,7 +153,7 @@ app.frame('/pokemons/:position/:index/confirm', async (c) => {
       image: `/pokeball.gif`,
       imageAspectRatio: '1:1',
       intents: [
-        <Button.Transaction action={`/battle/handle/0/0x`} target='/create-battle'>✅</Button.Transaction>,
+        <Button.Transaction action={`/battle/handle`} target='/create-battle'>✅</Button.Transaction>,
         <Button action={`/`}>BACK 🏠</Button>,
       ],
     })
@@ -157,18 +163,19 @@ app.frame('/pokemons/:position/:index/confirm', async (c) => {
   const selectedPokemons = c.previousState?.selectedPokemons || [];
 
   const playerPokemons = await getPokemonsByPlayerId(fid!, selectedPokemons);
-  selectedPokemons.push(playerPokemons[position]);
+  selectedPokemons.push(playerPokemons[lastSelectedPokemon]);
 
   c.deriveState((prevState: any) => {
     prevState.selectedPokemons = selectedPokemons;
   });
 
-  playerPokemons.splice(position, 1);
+  playerPokemons.splice(lastSelectedPokemon, 1);
   console.log(playerPokemons)
 
   // TODO: check if user has 3 or more pokemons
 
   const pokemonId = playerPokemons[position];
+  console.log(pokemonId)
   const totalPlayerPokemons = playerPokemons.length;
   const image = await getPokemonImage(pokemonId);
 
@@ -179,110 +186,98 @@ app.frame('/pokemons/:position/:index/confirm', async (c) => {
     intents: [
       <Button action={`/pokemons/${boundIndex(position - 1, totalPlayerPokemons)}/${index+1}`}>⬅️</Button>,
       <Button action={`/pokemons/${boundIndex(position + 1, totalPlayerPokemons)}/${index+1}`}>➡️</Button>,
-      <Button action={`/pokemons/${boundIndex(position, totalPlayerPokemons)}/${index+1}/confirm`}>✅</Button>,
+      <Button action={`/pokemons/0/${index+1}/confirm`}>✅</Button>,
       <Button action={`/`}>BACK 🏠</Button>,
     ],
   })
 })
 
-app.frame('/battle/handle/:gameId/:txid', async (c) => {
-  const { frameData } = c;
-  const fid = frameData?.fid;
-  const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
-  const playerAddress = verifiedAddresses[0] as `0x${string}` || "0xSug0u";
-  let gameId = c.req.param('gameId') as `0x${string}`;
-  const txId = c.req.param('txid');
-  if (c.transactionId === undefined && txId === undefined) return c.error({ message: 'No txId' });
-  let transactionReceipt;
+app.frame('/battle/handle', async (c) => {
+  const txId = c.transactionId ? c.transactionId : '0x';
+  const fid = c.frameData?.fid;
+  let currentTx : `0x${string}` = '0x';
 
-  if (txId !== '0x') {
-    c.transactionId = txId as `0x${string}`;
+  if(txId !== '0x') {
+    c.deriveState((prevState: any) => {
+      prevState.currentTxId = txId;
+      currentTx = txId;
+    })
+  } else {
+    currentTx = c.previousState?.currentTxId!;
+  }
 
+  if(currentTx !== '0x') {
     try {
-      transactionReceipt = await publicClient.getTransactionReceipt({
-        hash: txId as `0x${string}`,
-      });
-      if (transactionReceipt && transactionReceipt.status == 'reverted') {
+      const transactionReceipt = await publicClient.getTransactionReceipt({hash: currentTx});
+
+      console.log(transactionReceipt);
+
+      if(transactionReceipt && transactionReceipt.status == 'reverted') {
         return c.error({ message: 'Transaction failed' });
+      }
+
+      if(!c.previousState?.selectedPokemons) {
+        return c.error({ message: 'No pokemons selected' });
+      }
+
+      if(c.previousState?.selectedPokemons.length < 3) {
+        return c.error({ message: 'Not enough pokemons selected' });
+      }
+
+      if(transactionReceipt?.status === 'success') {
+        const newBattleId = await createBattle(fid!, c.previousState.selectedPokemons!);
+
+        console.log(newBattleId);
+      
+        if(newBattleId === 'Failed to create battle') {
+          return c.error({ message: 'Failed to create battle' });
+        }
+
+        return c.res({
+          title,
+          image: `/ok.jpg`,
+          imageAspectRatio: '1:1',
+          intents: [
+            <Button.Link href={`${SHARE_INTENT}/${SHARE_TEXT}/${SHARE_EMBEDS}/${FRAME_URL}/battle/handle/${newBattleId}/${c.transactionId}`}>SHARE</Button.Link>,
+            <Button action={`/battle/${newBattleId}`}>BATTLE!</Button>,
+          ],
+        })
       }
     } catch (error) {
       console.log(error)
     }
   }
-  if (transactionReceipt?.status === 'success') {
-    gameId = txId as `0x${string}` + playerAddress;
-    return c.res({
-      title,
-      image: `/ok.jpg`,
-      imageAspectRatio: '1:1',
-      intents: [
-        <Button.Link href={`${SHARE_INTENT}/${SHARE_TEXT}/${SHARE_EMBEDS}/${FRAME_URL}/battle/handle/${gameId}/${c.transactionId}`}>SHARE</Button.Link>,
-        <Button action={`/battle/${gameId}`}>BATTLE!</Button>,
-      ],
-    })
-  }
-  gameId = '0x';
+
   return c.res({
     title,
-    image: `/1.png`,
+    image: `/loading.gif`,
     imageAspectRatio: '1:1',
     intents: [
-      <Button action={`/battle/handle/${gameId}/${c.transactionId}`}>REFRESH</Button>,
+      <Button action={`/battle/handle`}>REFRESH 🔄️</Button>,
     ],
   })
 })
 
-
-// app.frame('/battle/random', async(c) => {
-//   const { frameData } = c;
-//   const fid = frameData?.fid;
-//   const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
-
-//   const address = verifiedAddresses[0] as `0x${string}`;
-
-//   const response = await fetch(
-//     `${BACKEND_URL!}/war/getRandomChallengableGame?exept_maker=${address}`,
-//     {
-//       method: 'GET',
-//       headers: {
-//         'Content-Type': 'application/json',
-//       },
-//     },
-//   );
-//   const game = await response.json();
-//   if (!game.game_id) return c.error({ message: 'No game found' });
-
-//   return await battleFrame(c, game.game_id);
-// })
-
 //render pokemon active pokemons and basic stats (hp) 
 app.frame('/battle/:gameId', async (c) => {
-  const gameId = c.req.param('gameId') as string;
-  return await battleFrame(c, gameId);
-});
+  const gameId = Number(c.req.param('gameId'));
 
-const battleFrame = async (
-  c: FrameContext<
-    {
-      State: State;
-    },
-    '/battle/:gameId',
-    BlankInput
-  >,
-  gameId: string
-) => {
-  //   let gameInfo = await getGameInfoByGameId(gameId);
+  const battle = await getBattleById(gameId);
+  const battleStatus = battle.status;
 
-  //   if(!gameInfo) {
-  //     return c.res({
-  //       title,
-  //       image: 'https://i.imgur.com/R0qW9mo.png',
-  //       imageAspectRatio: '1:1',
-  //       intents: [<Button action="/">BACK</Button>],
-  //     })
-  //   }
+  switch(battleStatus) {
+    case "waiting":
+      return c.res({
+        title,
+        image: '/battle2.png',
+        imageAspectRatio: '1:1',
+        intents: [
+          <Button action={`/battle/${gameId}/join`}>ACCEPT</Button>,
+        ]
+      });
+  }
 
-  //   const gameName = gameInfo[0].name;
+  console.log(battle);
 
   return c.res({
     title,
@@ -294,7 +289,7 @@ const battleFrame = async (
       <Button action={`/battle/${gameId}/run`}>RUN</Button>
     ]
   })
-}
+});
 
 app.frame('/battle/:gameId/fight', async (c) => {
   const gameId = c.req.param('gameId') as string;
