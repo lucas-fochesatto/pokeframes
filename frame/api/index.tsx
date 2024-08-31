@@ -1,17 +1,14 @@
-import sharp from 'sharp';
 import { serveStatic } from '@hono/node-server/serve-static'
-import { Button, FrameContext, Frog, parseEther } from 'frog'
+import { Button, Frog, parseEther } from 'frog'
 import { getFarcasterUserInfo } from '../lib/neynar.js';
 import { publicClient } from '../lib/contracts.js';
 import { devtools } from 'frog/dev';
 import { handle } from 'frog/vercel';
 import { serve } from '@hono/node-server';
 // import { BACKEND_URL } from '../constant/config.js';
-import { BlankInput } from 'hono/types';
-import { assignPokemonToUser, createBattle, getBattleById, getPokemonImage, getPokemonsByPlayerId, queryInputNotice } from '../lib/database.js';
+import { assignPokemonToUser, createBattle, getBattleById, getPokemonImage, getPokemonsByPlayerId, joinBattle, queryInputNotice } from '../lib/database.js';
 import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title } from '../constant/config.js';
 import { boundIndex } from '../lib/utils/boundIndex.js';
-import { fromHex } from 'viem';
 import { generateGame, generateFight } from '../image-generation/generators.js';
 import { Attack } from '../types/types.js';
 
@@ -25,6 +22,7 @@ type State = {
   isMaker?: boolean;
   joinableBattleId?: number;
   isLoading?: boolean;
+  mintedPokemonId?: number;
 }
 
 export const app = new Frog<{ State: State }>({
@@ -243,6 +241,67 @@ app.frame('/battle/handle', async (c) => {
   })
 })
 
+app.frame('/battle/:gameId/join', async (c) => {
+  const gameId = Number(c.req.param('gameId'));
+  const fid = c.frameData?.fid;
+  const txId = c.transactionId ? c.transactionId : '0x';
+  let currentTx : `0x${string}` = '0x';
+
+  if(txId !== '0x') {
+    c.deriveState((prevState: any) => {
+      prevState.currentTxId = txId;
+      currentTx = txId;
+    })
+  } else {
+    currentTx = c.previousState?.currentTxId!;
+  }
+
+  if(currentTx !== '0x') {
+    try {
+      const transactionReceipt = await publicClient.getTransactionReceipt({hash: currentTx});
+
+      console.log(transactionReceipt);
+
+      if(transactionReceipt && transactionReceipt.status == 'reverted') {
+        return c.error({ message: 'Transaction failed' });
+      }
+
+      if(!c.previousState?.selectedPokemons) {
+        return c.error({ message: 'No pokemons selected' });
+      }
+
+      if(c.previousState?.selectedPokemons.length < 3) {
+        return c.error({ message: 'Not enough pokemons selected' });
+      }
+
+      if(transactionReceipt?.status === 'success') {
+        await joinBattle(gameId, fid!, c.previousState.selectedPokemons!)
+
+        return c.res({
+          title,
+          image: `/ok.jpg`,
+          imageAspectRatio: '1:1',
+          intents: [
+            <Button.Link href={`${SHARE_INTENT}/${SHARE_TEXT}/${SHARE_EMBEDS}/${FRAME_URL}/battle/${gameId}`}>SHARE</Button.Link>,
+            <Button action={`/battle/${gameId}`}>BATTLE!</Button>,
+          ],
+        })
+      }
+    } catch (error) {
+      console.log(error)
+    }
+  }
+
+  return c.res({
+    title,
+    image: `/loading.gif`,
+    imageAspectRatio: '1:1',
+    intents: [
+      <Button action={`/battle/${gameId}/join`}>REFRESH 🔄️</Button>,
+    ],
+  })
+})
+
 //render pokemon active pokemons and basic stats (hp) 
 app.frame('/battle/:gameId', async (c) => {
   const gameId = Number(c.req.param('gameId'));
@@ -336,24 +395,26 @@ app.frame('/battle/:gameId/run', async (c) => {
   })
 });
 
-app.frame('/pokedex/:id', async (c) => {
+app.frame('/pokedex/:position', async (c) => {
   const { frameData } = c;
   const fid = frameData?.fid;
-  const { verifiedAddresses } = c.previousState ? c.previousState : await getFarcasterUserInfo(fid);
-  const playerAddress = verifiedAddresses[0] as `0x${string}`;
-  const playerPokemons = ['1', '2'];
-  //// uncomment when database is ready
-  // const playerPokemons = await getPokemonsByPlayerId(fid!);
-  const id = Number(c.req.param('id')) || 0;
+
+  const playerPokemons = await getPokemonsByPlayerId(fid!);
   const totalPlayerPokemons = playerPokemons.length;
+  
+  const position = Number(c.req.param('position')) || 0;
+
+  const pokemonId = playerPokemons[position];
+
+  const image = await getPokemonImage(pokemonId);
 
   return c.res({
     title,
-    image: `/${playerPokemons[boundIndex(id + 1, totalPlayerPokemons)]}.png`,
+    image,
     imageAspectRatio: '1:1',
     intents: [
-      <Button action={`/pokedex/${boundIndex(id - 1, totalPlayerPokemons)}`}>⬅️</Button>,
-      <Button action={`/pokedex/${boundIndex(id + 1, totalPlayerPokemons)}`}>➡️</Button>,
+      <Button action={`/pokedex/${boundIndex(position - 1, totalPlayerPokemons)}`}>⬅️</Button>,
+      <Button action={`/pokedex/${boundIndex(position + 1, totalPlayerPokemons)}`}>➡️</Button>,
       <Button action={`/verify`}>OK ✅</Button>,
       <Button action={`/new`}>NEW 🎲</Button>,
     ],
@@ -400,18 +461,18 @@ app.frame('/loading', async (c) => {
       }
 
       if (transactionReceipt?.status === 'success') {
+        const pokemonId = c.previousState.mintedPokemonId ? c.previousState.mintedPokemonId : await assignPokemonToUser(fid!, currentTx as `0x${string}`);
 
-        const pokemonId = await assignPokemonToUser(fid!, currentTx as `0x${string}`);
+        c.deriveState((prevState: any) => {
+          prevState.mintedPokemonId = pokemonId;
+        });
 
-        console.log(pokemonId);
-        
         return c.res({
           title,
           image: `/pokeball.gif`,
           imageAspectRatio: '1:1',
           intents: [
-            <Button action={`/gotcha/${pokemonId}`}>CATCH</Button>,
-            <Button action={`/`}>RESET</Button>,
+            <Button action={pokemonId ? `/gotcha/${pokemonId}` : ''}>CATCH</Button>,
           ],
         })
       }
@@ -440,6 +501,15 @@ app.transaction('/mint', (c) => {
 })
 
 app.transaction('/create-battle', (c) => {
+  const cost = '0.000777';
+  return c.send({
+    chainId: 'eip155:11155111',
+    to: '0x02f37D3C000Fb5D2A824a3dc3f1a29fa5530A8D4',
+    value: parseEther(cost as string),
+  })
+})
+
+app.transaction('/join-battle', (c) => {
   const cost = '0.000777';
   return c.send({
     chainId: 'eip155:11155111',

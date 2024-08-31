@@ -115,3 +115,21 @@ export const queryInputNotice = async (inputIndex: number) => {
 
   return pokemonId;
 }
+
+export const joinBattle = async (battleId: number, taker: number, taker_pokemons: number[]) => {
+  const response = await fetch(`${BACKEND_URL}/join-battle`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ battleId, taker, taker_pokemons: JSON.stringify(taker_pokemons) })
+  })
+
+  if(response.ok) {
+    const data = await response.json();
+
+    return data;
+  } else {
+    return "Failed to join battle";
+  }
+}
