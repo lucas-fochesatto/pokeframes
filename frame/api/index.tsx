@@ -8,7 +8,7 @@ import { handle } from 'frog/vercel';
 import { serve } from '@hono/node-server';
 // import { BACKEND_URL } from '../constant/config.js';
 import { BlankInput } from 'hono/types';
-import { assignPokemonToUser, createBattle, getBattleById, getPokemonImage, getPokemonsByPlayerId } from '../lib/database.js';
+import { assignPokemonToUser, createBattle, getBattleById, getPokemonImage, getPokemonsByPlayerId, queryInputNotice } from '../lib/database.js';
 import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title } from '../constant/config.js';
 import { boundIndex } from '../lib/utils/boundIndex.js';
 import { fromHex } from 'viem';
@@ -24,6 +24,7 @@ type State = {
   currentTxId?: `0x${string}`;
   isMaker?: boolean;
   joinableBattleId?: number;
+  isLoading?: boolean;
 }
 
 export const app = new Frog<{ State: State }>({
@@ -373,10 +374,10 @@ app.frame('/new', (c) => {
 
 app.frame('/loading', async (c) => {
   const txId = c.transactionId ? c.transactionId : '0x';
-  const fid = c.frameData?.fid;
+  const { frameData } = c;
+  const fid = frameData?.fid;
   let currentTx : `0x${string}` = '0x';
 
-  console.log(txId);
   if(txId !== '0x') {
     c.deriveState((prevState: any) => {
       prevState.currentTxId = txId;
@@ -399,7 +400,8 @@ app.frame('/loading', async (c) => {
       }
 
       if (transactionReceipt?.status === 'success') {
-        const pokemonId = await assignPokemonToUser(fid!, txId as `0x${string}`);
+
+        const pokemonId = await assignPokemonToUser(fid!, currentTx as `0x${string}`);
 
         console.log(pokemonId);
         
@@ -446,11 +448,13 @@ app.transaction('/create-battle', (c) => {
   })
 })
 
-app.frame('/gotcha/:pokemonId', (c) => {
-  const pokemonId = c.req.param('pokemonId');
+app.frame('/gotcha/:pokemonId', async (c) => {
+  const pokemonId = Number(c.req.param('pokemonId'));
+  const image = await getPokemonImage(pokemonId);
+
   return c.res({
     title,
-    image: `/${pokemonId}.png`,
+    image,
     imageAspectRatio: '1:1',
     intents: [
       <Button.Link href={`${SHARE_INTENT}${SHARE_GACHA}${SHARE_EMBEDS}${FRAME_URL}/share/${pokemonId}`}>SHARE</Button.Link>,

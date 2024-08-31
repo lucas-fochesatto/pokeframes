@@ -23,7 +23,7 @@ try {
   db.run('CREATE TABLE IF NOT EXISTS hashes (hash TEXT PRIMARY KEY)');
   db.run('CREATE TABLE IF NOT EXISTS battles (id TEXT PRIMARY KEY, maker TEXT, taker TEXT)');
 
-  db.run('INSERT INTO players (playerid, wallet, inventory, battles) VALUES (?, ?, ?, ?)', [1, '0xsug0u', '[]', '[]']);
+  db.run('INSERT INTO players (playerid, wallet, inventory, battles) VALUES (?, ?, ?, ?)', [1, '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', '[]', '[]']);
   db.run('UPDATE players SET inventory = ? WHERE playerid = ?', ['[25,24,23,12,16]', 1]);
 } catch (e) {
   console.log('ERROR initializing database: ', e)
@@ -78,6 +78,8 @@ const assignPokemon = async (playerId: number, wallet: `0x${string}`, pokemonId:
   // check if user is already registered
   const player : Player = await db.get('SELECT * FROM players WHERE playerid = ?', [playerId]);
 
+  console.log(player);
+
   if(!player) {
     db.run('INSERT INTO players (playerid, wallet, inventory, battles) VALUES (?, ?, ?, ?)', [playerId, wallet, JSON.stringify([pokemonId]), '[]']);
 
@@ -86,6 +88,7 @@ const assignPokemon = async (playerId: number, wallet: `0x${string}`, pokemonId:
   
   const inventory = JSON.parse(player.inventory);
   inventory.push(pokemonId);
+  console.log(inventory);
   db.run('UPDATE players SET inventory = ? WHERE playerid = ?', [JSON.stringify(inventory), playerId]);
   
   return { playerCreated: false };
