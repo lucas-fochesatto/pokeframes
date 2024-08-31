@@ -1,6 +1,7 @@
 import { BACKEND_URL, GRAPHQL_URL } from "../constant/config";
 import { Battle } from "../types/types";
 import { fromHex } from 'viem'
+
 export const getBattleById = async (id: number) => {
   const response = await fetch(`${BACKEND_URL}/battle/${id}`);
 
@@ -9,22 +10,32 @@ export const getBattleById = async (id: number) => {
   return data as Battle;
 }
 
-export const assignPokemonToUser = async (senderId: number, hash: `0x${string}`) => {
-  console.log({ senderId, hash });
+let isMinting = false;
 
-  const response = await fetch(`${BACKEND_URL}/assign-pokemon`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ senderId, hash })
-  })
-  const data = await response.json()
-  if(response.ok) {
-    const pokemonId = await queryInputNotice(fromHex(data.pokemonId.hex, `number`))
-    return pokemonId;
+export const assignPokemonToUser = async (senderId: number, hash: `0x${string}`) => {
+  console.log(isMinting);
+
+  if(!isMinting) {
+    isMinting = true;
+    const response = await fetch(`${BACKEND_URL}/assign-pokemon`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ senderId, hash })
+    })
+  
+    const data = await response.json()
+  
+    if(response.ok) {
+      const pokemonId = await queryInputNotice(fromHex(data.pokemonId.hex, `number`))
+      isMinting = true;
+      return pokemonId;
+    } else {
+      return "Failed to assign pokemon";
+    }
   } else {
-    return "Failed to assign pokemon";
+    return "Already minting";
   }
 }
 
