@@ -291,6 +291,19 @@ app.frame('/battle/:gameId', async (c) => {
   })
 });
 
+app.frame('/battle/share/:gameId', async (c) => {
+  const gameId = c.req.param('gameId') as string;
+  return c.res({
+    title,
+    image: '/join-battle.png',
+    imageAspectRatio: '1:1',
+    intents: [
+      <Button action={`/battle/${gameId}`}>BATTLE!</Button>,
+    ]
+  })
+});
+
+
 app.frame('/battle/:gameId/fight', async (c) => {
   const gameId = c.req.param('gameId') as string;
   // TODO: a function to update the battle log and status
