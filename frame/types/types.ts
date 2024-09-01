@@ -1,6 +1,5 @@
 export type Attack = {
     atk: string,
-    PP: number,
     type: PokemonType;
 }
 

@@ -621,9 +621,21 @@ app.frame('/share/:pokemonId', (c) => {
   })
 })
 
+app.frame('/test', (c) => {
+  const pokemonId = c.req.param('pokemonId');
+  return c.res({
+    title,
+    image: `/image/fight`,
+    imageAspectRatio: '1:1',
+    intents: [
+      <Button action={`/`}>TRY IT OUT 🏠</Button>,
+    ],
+  })
+})
+
 app.hono.get('/image/vs', async (c) => {
   try {
-    const image = await generateGame(`pikachu`, `chupacu`, 20, 4, 30, 23);
+    const image = await generateGame(`pikachu`, '25', `charmander`, '3', 20, 4, 30, 30);
 
     return c.newResponse(image, 200, {
       'Content-Type': 'image/png',
@@ -684,8 +696,8 @@ app.hono.get('/image/checkout/:p1/:p2/:p3', async (c) => {
 
 app.hono.get('/image/fight', async (c) => {
   try {
-    const attacks = [{atk: 'Light', type: {name:'normal', color:'000000'}, PP:20}, {atk: 'Light', type: {name:'normal', color:'000000'}, PP:20}, {atk: 'Light', type: {name:'normal', color:'000000'}, PP:20}] as Attack[];
-    const image = await generateFight('pikachu', 20, 20, attacks)
+    const attacks = [{atk: 'Tackle', type: {name:'normal', color:'919191'}}, {atk: 'Thunderbolt', type: {name:'electric', color:'FFE500'}}, {atk: 'Light', type: {name:'normal', color:'000000'}}] as Attack[];
+    const image = await generateFight('pikachu', 25, 20, 20, attacks)
 
     return c.newResponse(image, 200, {
       'Content-Type': 'image/png',
