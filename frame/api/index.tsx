@@ -206,21 +206,12 @@ app.frame('/battle/handle', async (c) => {
       }
 
       if(transactionReceipt?.status === 'success') {
-        const newBattleId = await createBattle(fid!, c.previousState.selectedPokemons!);
-
-        console.log(newBattleId);
-      
-        if(newBattleId === 'Failed to create battle') {
-          return c.error({ message: 'Failed to create battle' });
-        }
-
         return c.res({
           title,
           image: `/shareBattle.png`,
           imageAspectRatio: '1:1',
           intents: [
-            <Button.Link href={`${SHARE_INTENT}/${SHARE_TEXT}/${SHARE_EMBEDS}/${FRAME_URL}/battle/handle/${newBattleId}/${c.transactionId}`}>SHARE</Button.Link>,
-            <Button action={`/battle/${newBattleId}`}>BATTLE!</Button>,
+            <Button action={`/finish-battle-create`}>FINISH CREATION</Button>,
           ],
         })
       }
@@ -235,6 +226,42 @@ app.frame('/battle/handle', async (c) => {
     imageAspectRatio: '1:1',
     intents: [
       <Button action={`/battle/handle`}>REFRESH 🔄️</Button>,
+    ],
+  })
+})
+
+app.frame('/finish-battle-create', async (c) => {
+  const { frameData } = c;
+  const fid = frameData?.fid;
+
+  const newBattleId = await createBattle(fid!, c.previousState.selectedPokemons!);
+
+  if(newBattleId === 'Already creating battle') {
+    return c.res({
+      title,
+      image: '/pokeball.gif',
+      imageAspectRatio: '1:1',
+      intents: [
+        <Button action={`/finish-battle-create`}>WAIT...</Button>,
+      ],
+    })
+  }
+
+  if(newBattleId === 'Failed to create battle') {
+    return c.error({ message: 'Failed to create battle' });
+  }
+
+  c.deriveState((prevState: any) => {
+    prevState.newBattleId = newBattleId;
+  });
+
+  return c.res({
+    title,
+    image: `/ok.jpg`,
+    imageAspectRatio: '1:1',
+    intents: [
+      <Button.Link href={`${SHARE_INTENT}/${SHARE_TEXT}/${SHARE_EMBEDS}/${FRAME_URL}/battle/handle/${newBattleId}/${c.transactionId}`}>SHARE</Button.Link>,
+      <Button action={`/battle/${newBattleId}`}>BATTLE!</Button>,
     ],
   })
 })
@@ -508,10 +535,6 @@ app.frame('/finish-mint', async (c) => {
   const currentTx = c.previousState?.currentTxId!;
 
   console.log(currentTx);
-
-  c.deriveState((prevState: any) => {
-    prevState.isLoading = true;
-  });
 
   const pokemonId = await assignPokemonToUser(fid!, currentTx as `0x${string}`);
   

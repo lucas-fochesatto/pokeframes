@@ -65,23 +65,32 @@ export const getPokemonImage = async (pokemonId : number) => {
   return data.image;
 }
 
+let isCreatingBattle = false;
+
 export const createBattle = async (maker: number, maker_pokemons: number[]) => {
-  const response = await fetch(`${BACKEND_URL}/create-battle`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({ maker, maker_pokemons: JSON.stringify(maker_pokemons) })
-  })
+  if(!isCreatingBattle) {
+    isCreatingBattle = true;
+    const response = await fetch(`${BACKEND_URL}/create-battle`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ maker, maker_pokemons: JSON.stringify(maker_pokemons) })
+    })
+  
+    if(response.ok) {
+      const data = await response.json();
+  
+      const newBattle = data.newBattle;
+  
+      isCreatingBattle = false;
 
-  if(response.ok) {
-    const data = await response.json();
-
-    const newBattle = data.newBattle;
-
-    return newBattle.id;
+      return newBattle.id;
+    } else {
+      return "Failed to create battle";
+    }
   } else {
-    return "Failed to create battle";
+    return "Already creating battle";
   }
 }
 
