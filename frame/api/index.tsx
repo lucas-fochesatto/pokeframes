@@ -515,7 +515,7 @@ app.frame('/loading', async (c) => {
         })
       }
     } catch (error) {
-      console.log(error)
+      console.log("Waiting for tx...");
     }
   }
   return c.res({
@@ -590,7 +590,12 @@ app.transaction('/join-battle', (c) => {
 })
 
 app.frame('/gotcha/:pokemonId', async (c) => {
-  const pokemonId = Number(c.req.param('pokemonId'));
+  let pokemonId = Number(c.req.param('pokemonId'));
+  if(!pokemonId) {
+    console.log("Failed getting pokemon... trying to get the last pokemon");
+    const playerPokemons = await getPokemonsByPlayerId(c.frameData?.fid!);
+    pokemonId = playerPokemons[playerPokemons.length - 1];
+  }
   const pokemonName = await getPokemonName(pokemonId);
 
   return c.res({

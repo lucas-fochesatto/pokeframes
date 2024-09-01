@@ -11,11 +11,10 @@ export const getBattleById = async (id: number) => {
 }
 
 let isMinting = false;
-let mintedPokemonId : number = 0;
+let canQuery = false;
+let mintData : any = null;
 
 export const assignPokemonToUser = async (senderId: number, hash: `0x${string}`) => {
-  console.log(isMinting);
-
   if(!isMinting) {
     isMinting = true;
     const response = await fetch(`${BACKEND_URL}/assign-pokemon`, {
@@ -26,18 +25,25 @@ export const assignPokemonToUser = async (senderId: number, hash: `0x${string}`)
       body: JSON.stringify({ senderId, hash })
     })
   
-    const data = await response.json()
+    mintData = await response.json();
   
     if(response.ok) {
-      mintedPokemonId = await queryInputNotice(fromHex(data.pokemonId.hex, `number`))
-      isMinting = false;
-      return mintedPokemonId;
+      console.log("Minted pokemon", mintData);
+      canQuery = true;
     } else {
       return "Failed to assign pokemon";
     }
-  } else {
-    return mintedPokemonId;
   }
+
+  if(canQuery) {
+    console.log('Data on query: ', mintData);
+    canQuery = false;
+    const pokemonId = await queryInputNotice(fromHex(mintData!.pokemonId.hex, `number`))
+    isMinting = false;
+    return pokemonId;
+  }
+
+  return 0;
 }
 
 export const getPokemonsByPlayerId = async (senderId: number, selectedPokemons: number[] = []) => {
@@ -96,45 +102,50 @@ export const createBattle = async (maker: number, maker_pokemons: number[]) => {
 }
 
 export const queryInputNotice = async (inputIndex: number) => {
-  const query = `
-    query noticesByInput($inputIndex: Int!) {
-      input(index: $inputIndex) {
-        notices {
-          edges {
-            node {
-              index
-              input {
+  try {
+    const query = `
+      query noticesByInput($inputIndex: Int!) {
+        input(index: $inputIndex) {
+          notices {
+            edges {
+              node {
                 index
+                input {
+                  index
+                }
+                payload
               }
-              payload
             }
           }
         }
       }
+    `;
+  
+    const variables = {
+      inputIndex, // Replace 123 with the desired value
+    };
+  
+    const response = await fetch(`${GRAPHQL_URL}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query, variables })
+    })
+  
+    const result = await response.json();
+  
+    if(!result.data) {
+      return "Input not found";
     }
-  `;
-
-  const variables = {
-    inputIndex, // Replace 123 with the desired value
-  };
-
-  const response = await fetch(`${GRAPHQL_URL}`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ query, variables })
-  })
-
-  const result = await response.json();
-
-  if(!result.data) {
-    return "Input not found";
+  
+    const payload = JSON.parse(fromHex(result.data.input.notices.edges[0].node.payload, 'string'));
+  
+    const pokemonId = payload.pokemonId;
+  
+    return pokemonId;
+  } catch (error) {
+    console.log("Wait...");
+    return 0;
   }
-
-  const payload = JSON.parse(fromHex(result.data.input.notices.edges[0].node.payload, 'string'));
-
-  const pokemonId = payload.pokemonId;
-
-  return pokemonId;
 }
 
 export const joinBattle = async (battleId: number, taker: number, taker_pokemons: number[]) => {
