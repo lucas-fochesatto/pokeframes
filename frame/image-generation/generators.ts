@@ -137,3 +137,73 @@ export const generateFight = async (
     }
 }
 
+export const generateBattleConfirm = async (
+  pokemonIds: number[],
+) => {
+  try {
+  const ComponentsArray = [];
+  
+  const baseImageBuffer = await sharp('./public/battle-checkout.png')
+  .resize(600, 600)
+  .png()
+  .toBuffer();
+
+  const pokemon1ImageBuffer = await sharp(`./public/pokemons/${pokemonIds[0]}.png`)
+  .resize(125, 125)
+  .png()
+  .toBuffer();
+
+  const pokemon2ImageBuffer = await sharp(`./public/pokemons/${pokemonIds[1]}.png`)
+  .resize(125, 125)
+  .png()
+  .toBuffer();
+
+  const pokemon3ImageBuffer = await sharp(`./public/pokemons/${pokemonIds[2]}.png`)
+  .resize(125, 125)
+  .png()
+  .toBuffer();
+
+  ComponentsArray.push({input: pokemon1ImageBuffer, top: 191, left: 68});
+  ComponentsArray.push({input: pokemon2ImageBuffer, top: 191, left: 238});
+  ComponentsArray.push({input: pokemon3ImageBuffer, top: 191, left: 409});
+  const finalImage = await sharp(baseImageBuffer)
+  .composite(ComponentsArray)
+  .png()
+  .toBuffer();
+
+  return finalImage;
+  } catch(error) {
+      console.error("Error during battle checkout generation:", error);
+      throw error;
+  }
+}
+
+export const generateWaitingRoom = async (
+  pfp_url: string,
+) => {
+  try {
+  const ComponentsArray = [];
+  
+  const baseImageBuffer = await sharp('./public/waiting-room.png')
+  .resize(600, 600)
+  .png()
+  .toBuffer();
+
+  const usr1ImageBuffer = await sharp('./public/pokemons/25.png')
+  .resize(170, 170)
+  .png()
+  .toBuffer();
+
+  ComponentsArray.push({input: usr1ImageBuffer, top: 324, left: 48});
+
+  const finalImage = await sharp(baseImageBuffer)
+  .composite(ComponentsArray)
+  .png()
+  .toBuffer();
+
+  return finalImage;
+  } catch(error) {
+      console.error("Error during battle checkout generation:", error);
+      throw error;
+  }
+}

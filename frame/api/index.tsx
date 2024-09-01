@@ -9,7 +9,7 @@ import { serve } from '@hono/node-server';
 import { assignPokemonToUser, createBattle, getBattleById, getPokemonImage, getPokemonsByPlayerId, joinBattle, queryInputNotice } from '../lib/database.js';
 import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title } from '../constant/config.js';
 import { boundIndex } from '../lib/utils/boundIndex.js';
-import { generateGame, generateFight } from '../image-generation/generators.js';
+import { generateGame, generateFight, generateBattleConfirm, generateWaitingRoom } from '../image-generation/generators.js';
 import { Attack } from '../types/types.js';
 
 type State = {
@@ -40,7 +40,7 @@ app.use('/*', serveStatic({ root: './public' }))
 app.frame('/', (c) => {
   return c.res({
     title,
-    image: '/pikachu.png',
+    image: '/start.png',
     imageAspectRatio: '1:1',
     intents: [
       <Button action={`/verify`}>PLAY 🔴</Button>,
@@ -69,12 +69,11 @@ app.frame('/verify', async (c) => {
   }
   return c.res({
     title,
-    image: '/ok.png',
+    image: '/welcome.png',
     imageAspectRatio: '1:1',
     intents: [
-      <Button action={`/battle`}>BATTLE</Button>,
-      <Button action={`/pokedex/0`}>POKEDEX</Button>,
-      <Button action={`/scores`}>SCORES</Button>,
+      <Button action={`/battle`}>BATTLE 🔴</Button>,
+      <Button action={`/pokedex/0`}>POKEDEX 📱</Button>,
     ],
   })
 })
@@ -92,7 +91,7 @@ app.frame('/battle', async (c) => {
 
   return c.res({
     title,
-    image: '/battle2.png',
+    image: '/battle3.png',
     imageAspectRatio: '1:1',
     intents: [
       <Button action={`/pokemons/0/0`}>POKEMONS</Button>,
@@ -135,11 +134,11 @@ app.frame('/pokemons/:position/:index', async (c) => {
     if(index == 3) {
       return c.res({
         title,
-        image: `/pokeball.gif`,
+        image: `/image/checkout/${selectedPokemons[0]}/${selectedPokemons[1]}/${selectedPokemons[2]}`,
         imageAspectRatio: '1:1',
         intents: [
           <Button.Transaction action={`${isMaker ? '/battle/handle' : `/battle/${joinableBattleId}/join`}`} target={`${isMaker ? '/create-battle' : '/join-battle'}`}>✅</Button.Transaction>,
-          <Button action={`/`}>BACK 🏠</Button>,
+          <Button action={`/battle`}>↩️</Button>,
         ],
       })
     }
@@ -169,7 +168,7 @@ app.frame('/pokemons/:position/:index', async (c) => {
       <Button action={`/pokemons/${boundIndex(position - 1, totalPlayerPokemons)}/${index}`}>⬅️</Button>,
       <Button action={`/pokemons/${boundIndex(position + 1, totalPlayerPokemons)}/${index}`}>➡️</Button>,
       <Button value='confirm' action={`/pokemons/0/${index+1}`}>✅</Button>,
-      <Button action={`/`}>BACK 🏠</Button>,
+      <Button action={`/battle`}>↩️</Button>,
     ],
   })
 })
@@ -209,7 +208,7 @@ app.frame('/battle/handle', async (c) => {
       if(transactionReceipt?.status === 'success') {
         return c.res({
           title,
-          image: `/pokeball.gif`,
+          image: `/shareBattle.png`,
           imageAspectRatio: '1:1',
           intents: [
             <Button action={`/finish-battle-create`}>FINISH CREATION</Button>,
@@ -305,10 +304,9 @@ app.frame('/battle/:gameId/join', async (c) => {
 
         return c.res({
           title,
-          image: `/ok.jpg`,
+          image: `/join-battle.png`,
           imageAspectRatio: '1:1',
           intents: [
-            <Button.Link href={`${SHARE_INTENT}/${SHARE_TEXT}/${SHARE_EMBEDS}/${FRAME_URL}/battle/${gameId}`}>SHARE</Button.Link>,
             <Button action={`/battle/${gameId}`}>BATTLE!</Button>,
           ],
         })
@@ -330,19 +328,35 @@ app.frame('/battle/:gameId/join', async (c) => {
 
 //render pokemon active pokemons and basic stats (hp) 
 app.frame('/battle/:gameId', async (c) => {
+  const fid = c.frameData?.fid;
+  const { pfp_url } = await getFarcasterUserInfo(fid) || 'error';
+  if (fid) {
+    if (!pfp_url || pfp_url.length === 0) {
+      return c.res({
+        title,
+        image: 'https://i.imgur.com/2tRZhkQ.jpeg',
+        imageAspectRatio: '1:1',
+        intents: [
+          <Button action={`https://verify.warpcast.com/verify/${fid}`}>VERIFY WALLET</Button>,
+          <Button.Reset>RESET</Button.Reset>,
+        ],
+      });
+    }
+    c.deriveState((prevState: any) => {
+      prevState.pfp_url = pfp_url;
+    });
+}
   const gameId = Number(c.req.param('gameId'));
-
   const battle = await getBattleById(gameId);
   const battleStatus = battle.status;
-
   switch(battleStatus) {
     case "waiting":
       return c.res({
         title,
-        image: '/battle2.png',
+        image: `/image/waiting/${pfp_url}`,
         imageAspectRatio: '1:1',
         intents: [
-          <Button action={`/battle/${gameId}/join`}>ACCEPT</Button>,
+          <Button action={`/battle/${gameId}`}>RELOAD 🔄️</Button>,
         ]
       });
   }
@@ -366,14 +380,13 @@ app.frame('/battle/share/:gameId', async (c) => {
   
   return c.res({
     title,
-    image: '/join-battle.png',
+    image: '/p2-pokemons.png',
     imageAspectRatio: '1:1',
     intents: [
-      <Button value={gameId} action='/pokemons/0/0'>BATTLE!</Button>,
+      <Button value={gameId} action='/pokemons/0/0'>POKEMONS 📱</Button>,
     ]
   })
 });
-
 
 app.frame('/battle/:gameId/fight', async (c) => {
   const gameId = c.req.param('gameId') as string;
@@ -394,7 +407,7 @@ app.frame('/battle/:gameId/fight', async (c) => {
 app.frame('/battle/:gameId/pokemon/:id', async (c) => {
   const id = c.req.param('id') as string;
   const gameId = c.req.param('gameId') as string;
-  // TODO make a get for pokemons in the battle and a set for the active pokemon
+
   return c.res({
     title,
     image: '/image/fight',
@@ -441,8 +454,8 @@ app.frame('/pokedex/:position', async (c) => {
     intents: [
       <Button action={`/pokedex/${boundIndex(position - 1, totalPlayerPokemons)}`}>⬅️</Button>,
       <Button action={`/pokedex/${boundIndex(position + 1, totalPlayerPokemons)}`}>➡️</Button>,
-      <Button action={`/verify`}>OK ✅</Button>,
-      <Button action={`/new`}>NEW 🎲</Button>,
+      <Button action={`/new`}>GOTCHA 🍀</Button>,
+      <Button action={`/verify`}>↩️</Button>,
     ],
   })
 })
@@ -450,11 +463,11 @@ app.frame('/pokedex/:position', async (c) => {
 app.frame('/new', (c) => {
   return c.res({
     title,
-    image: '/gacha2.png',
+    image: '/gacha1.png',
     imageAspectRatio: '1:1',
     intents: [
-      <Button.Transaction action={`/loading`} target={`/mint`}>CAPTURE 🍀</Button.Transaction>,
-      <Button action={`/`}>BACK</Button>,
+      <Button.Transaction action={`/loading`} target={`/mint`}>CAPTURE 🕹️</Button.Transaction>,
+      <Button action={`/pokedex/0`}>↩️</Button>,
     ],
   })
 })
@@ -604,34 +617,41 @@ app.frame('/share/:pokemonId', (c) => {
   })
 })
 
-//// TODO nothing has been done in this frame so... 
-app.frame('/scores', (c) => {
-  return c.res({
-    title,
-    image: 'https://i.imgur.com/2tRZhkQ.jpeg',
-    imageAspectRatio: '1:1',
-    intents: [
-      <Button action={`/`}>RESET</Button>,
-    ],
-  })
-})
-
-// app.frame('/vs', (c) => {
-//   return c.res({
-//     title,
-//     image: '/image/vs/',
-//     imageAspectRatio: '1:1',
-//     intents: [
-//       <Button action={`/vs`}>Refresh</Button>,
-//     ],
-//   })
-// })
-
-// test routing with dynamic img
 app.hono.get('/image/vs', async (c) => {
   try {
     const image = await generateGame(`pikachu`, `chupacu`, 20, 4, 30, 23);
 
+    return c.newResponse(image, 200, {
+      'Content-Type': 'image/png',
+      'Cache-Control': 'max-age=0', //try no-cache later
+    });
+  } catch (error) {
+    console.error("Error generating image:", error);
+    return c.newResponse("Error generating image", 500);
+  }
+});
+
+app.hono.get('/image/waiting/:pfp_url', async (c) => {
+  try {
+    const pfp_url = c.req.param('pfp_url');
+    const image = await generateWaitingRoom(pfp_url);
+    return c.newResponse(image, 200, {
+      'Content-Type': 'image/png',
+      'Cache-Control': 'max-age=0', //try no-cache later
+    });
+  } catch (error) {
+    console.error("Error generating image:", error);
+    return c.newResponse("Error generating image", 500);
+  }
+});
+
+app.hono.get('/image/checkout/:p1/:p2/:p3', async (c) => {
+  try {
+    const p1 = Number(c.req.param('p1'));
+    const p2 = Number(c.req.param('p2'));
+    const p3 = Number(c.req.param('p3'));
+    const pokemonIds = [p1,p2,p3];
+    const image = await generateBattleConfirm(pokemonIds);
     return c.newResponse(image, 200, {
       'Content-Type': 'image/png',
       'Cache-Control': 'max-age=0', //try no-cache later
