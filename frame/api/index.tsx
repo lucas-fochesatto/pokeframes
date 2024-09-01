@@ -6,10 +6,10 @@ import { devtools } from 'frog/dev';
 import { handle } from 'frog/vercel';
 import { serve } from '@hono/node-server';
 // import { BACKEND_URL } from '../constant/config.js';
-import { assignPokemonToUser, createBattle, getBattleById, getPokemonImage, getPokemonsByPlayerId, joinBattle, queryInputNotice } from '../lib/database.js';
+import { assignPokemonToUser, createBattle, getBattleById, getPokemonName, getPokemonsByPlayerId, joinBattle, queryInputNotice } from '../lib/database.js';
 import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title } from '../constant/config.js';
 import { boundIndex } from '../lib/utils/boundIndex.js';
-import { generateGame, generateFight, generateBattleConfirm, generateWaitingRoom } from '../image-generation/generators.js';
+import { generateGame, generateFight, generateBattleConfirm, generateWaitingRoom, generatePokemonCard } from '../image-generation/generators.js';
 import { Attack } from '../types/types.js';
 
 type State = {
@@ -154,15 +154,14 @@ app.frame('/pokemons/:position/:index', async (c) => {
   console.log(pokemonId)
 
   const totalPlayerPokemons = playerPokemons.length;
-  const image = await getPokemonImage(pokemonId);
-
+  const pokemonName = await getPokemonName(pokemonId)
   c.deriveState((prevState: any) => {
     prevState.lastSelectedPokemon = position;
   });
 
   return c.res({
     title,
-    image,
+    image: `/image/pokemon/${pokemonId}/${pokemonName}`,
     imageAspectRatio: '1:1',
     intents: [
       <Button action={`/pokemons/${boundIndex(position - 1, totalPlayerPokemons)}/${index}`}>⬅️</Button>,
@@ -417,12 +416,12 @@ app.frame('/pokedex/:position', async (c) => {
   const position = Number(c.req.param('position')) || 0;
 
   const pokemonId = playerPokemons[position];
-
-  const image = await getPokemonImage(pokemonId);
+  const pokemonName = await getPokemonName(Number(pokemonId));
+  // const image = await getPokemonImage(pokemonId);
 
   return c.res({
     title,
-    image,
+    image: `/image/pokemon/${pokemonId}/${pokemonName}`,
     imageAspectRatio: '1:1',
     intents: [
       <Button action={`/pokedex/${boundIndex(position - 1, totalPlayerPokemons)}`}>⬅️</Button>,
@@ -569,11 +568,11 @@ app.transaction('/join-battle', (c) => {
 
 app.frame('/gotcha/:pokemonId', async (c) => {
   const pokemonId = Number(c.req.param('pokemonId'));
-  const image = await getPokemonImage(pokemonId);
+  const pokemonName = await getPokemonName(pokemonId);
 
   return c.res({
     title,
-    image,
+    image: `/image/pokemon/${pokemonId}/${pokemonName}`,
     imageAspectRatio: '1:1',
     intents: [
       <Button.Link href={`${SHARE_INTENT}${SHARE_GACHA}${SHARE_EMBEDS}${FRAME_URL}/share/${pokemonId}`}>SHARE</Button.Link>,
@@ -597,6 +596,22 @@ app.frame('/share/:pokemonId', (c) => {
 app.hono.get('/image/vs', async (c) => {
   try {
     const image = await generateGame(`pikachu`, `chupacu`, 20, 4, 30, 23);
+
+    return c.newResponse(image, 200, {
+      'Content-Type': 'image/png',
+      'Cache-Control': 'max-age=0', //try no-cache later
+    });
+  } catch (error) {
+    console.error("Error generating image:", error);
+    return c.newResponse("Error generating image", 500);
+  }
+});
+
+app.hono.get('/image/pokemon/:id/:name', async (c) => {
+  try {
+    const id = Number(c.req.param('id'));
+    const name = c.req.param('name')
+    const image = await generatePokemonCard(id, name)
 
     return c.newResponse(image, 200, {
       'Content-Type': 'image/png',

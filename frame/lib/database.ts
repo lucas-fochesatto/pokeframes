@@ -57,12 +57,12 @@ export const getPokemonsByPlayerId = async (senderId: number, selectedPokemons: 
   return inventory; // { "inventory": [ 25, 25, 1, 10 ] }
 }
 
-export const getPokemonImage = async (pokemonId : number) => {
-  const response = await fetch(`${BACKEND_URL}/pokemon/${pokemonId}/image`);
+export const getPokemonName = async (pokemonId : number) => {
+  const response = await fetch(`${BACKEND_URL}/pokemon/${pokemonId}/name`);
 
   const data = await response.json();
 
-  return data.image;
+  return data.name;
 }
 
 export const createBattle = async (maker: number, maker_pokemons: number[]) => {
