@@ -6,7 +6,7 @@ import { devtools } from 'frog/dev';
 import { handle } from 'frog/vercel';
 import { serve } from '@hono/node-server';
 // import { BACKEND_URL } from '../constant/config.js';
-import { assignPokemonToUser, createBattle, getBattleById, getPokemonName, getPokemonsByPlayerId, joinBattle, queryInputNotice } from '../lib/database.js';
+import { assignPokemonToUser, createBattle, getBattleById, getPokemonName, getPokemonsByPlayerId, joinBattle, queryInputNotice, setSelectedPokemons } from '../lib/database.js';
 import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title } from '../constant/config.js';
 import { boundIndex } from '../lib/utils/boundIndex.js';
 import { generateGame, generateFight, generateBattleConfirm, generateWaitingRoom, generatePokemonCard, generatePokemonMenu } from '../image-generation/generators.js';
@@ -299,14 +299,12 @@ app.frame('/battle/:gameId/join', async (c) => {
       }
 
       if(transactionReceipt?.status === 'success') {
-        await joinBattle(gameId, fid!, c.previousState.selectedPokemons!)
-
         return c.res({
           title,
-          image: `/join-battle.png`,
+          image: `/go!.png`,
           imageAspectRatio: '1:1',
           intents: [
-            <Button action={`/battle/${gameId}`}>BATTLE!</Button>,
+            <Button value={gameId.toString()} action={`/finish-battle-join`}>GO! 🔥</Button>,
           ],
         })
       }
@@ -321,6 +319,39 @@ app.frame('/battle/:gameId/join', async (c) => {
     imageAspectRatio: '1:1',
     intents: [
       <Button action={`/battle/${gameId}/join`}>REFRESH 🔄️</Button>,
+    ],
+  })
+})
+
+app.frame('/finish-battle-join', async (c) => {
+  const { frameData, buttonValue } = c;
+  const fid = frameData?.fid;
+  const gameId = Number(buttonValue);
+
+  const message = await joinBattle(gameId, fid!, c.previousState.selectedPokemons!);
+  await setSelectedPokemons(gameId, fid!, [0,1]);
+
+  if(message === 'Already joining battle') {
+    return c.res({
+      title,
+      image: '/loading.gif',
+      imageAspectRatio: '1:1',
+      intents: [
+        <Button action={`/finish-battle-join`}>WAIT...</Button>,
+      ],
+    })
+  }
+
+  if(message === 'Failed to join battle') {
+    return c.error({ message: 'Failed to join battle' });
+  }
+
+  return c.res({
+    title,
+    image: `/go!.png`,
+    imageAspectRatio: '1:1',
+    intents: [
+      <Button action={`/battle/${gameId}`}>BATTLE!</Button>,
     ],
   })
 })
