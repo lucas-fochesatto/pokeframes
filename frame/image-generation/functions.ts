@@ -10,6 +10,16 @@ export const moves =((
         )
   })
 
+  export const moves2 =((
+    attackName: string
+  ) => {
+        return (
+        `<svg width="220" height="65">
+        <text x="0" y="25" text-anchor="left" font-family="Handjet" font-size="22" fill="white">${attackName}</text>
+        </svg>`
+        )
+  })
+
 export const typeBox = ((
     attackType: Attack
   ) => {
@@ -22,12 +32,24 @@ export const typeBox = ((
         )
   })
 
+  export const typeBox2 = ((
+    attackType: Attack
+  ) => {
+        return(
+        `
+            <svg width="104" height="40" fill="none">
+                <rect width="104" height="40" rx="20" fill="#${attackType.type.color}"/>
+            </svg>
+        `
+        )
+  })
+
 export const attackType = ((
     attackType: Attack
   ) => {
         return(`
         <svg width="400" height="40">
-            <text x="50" y="25" text-anchor="middle" font-family="Handjet" font-size="20" fill="white">${attackType.type.name.toUpperCase()}</text>
+            <text x="50" y="25" text-anchor="middle" font-family="Handjet" font-weight="bold" font-size="20" fill="white">${attackType.type.name.toUpperCase()}</text>
         </svg>
         `
         )

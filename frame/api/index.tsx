@@ -9,7 +9,7 @@ import { serve } from '@hono/node-server';
 import { assignPokemonToUser, createBattle, getBattleById, getPokemonName, getPokemonsByPlayerId, joinBattle, queryInputNotice } from '../lib/database.js';
 import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title } from '../constant/config.js';
 import { boundIndex } from '../lib/utils/boundIndex.js';
-import { generateGame, generateFight, generateBattleConfirm, generateWaitingRoom, generatePokemonCard } from '../image-generation/generators.js';
+import { generateGame, generateFight, generateBattleConfirm, generateWaitingRoom, generatePokemonCard, generatePokemonMenu } from '../image-generation/generators.js';
 import { Attack } from '../types/types.js';
 
 type State = {
@@ -625,7 +625,7 @@ app.frame('/test', (c) => {
   const pokemonId = c.req.param('pokemonId');
   return c.res({
     title,
-    image: `/image/fight`,
+    image: `/image/pokemenu`,
     imageAspectRatio: '1:1',
     intents: [
       <Button action={`/`}>TRY IT OUT 🏠</Button>,
@@ -636,6 +636,21 @@ app.frame('/test', (c) => {
 app.hono.get('/image/vs', async (c) => {
   try {
     const image = await generateGame(`pikachu`, '25', `charmander`, '3', 20, 4, 30, 30);
+
+    return c.newResponse(image, 200, {
+      'Content-Type': 'image/png',
+      'Cache-Control': 'max-age=0', //try no-cache later
+    });
+  } catch (error) {
+    console.error("Error generating image:", error);
+    return c.newResponse("Error generating image", 500);
+  }
+});
+
+app.hono.get('/image/pokemenu', async (c) => {
+  try {
+    const attacks = [{atk: 'Tackle', type: {name:'normal', color:'919191'}}, {atk: 'Thunderbolt', type: {name:'electric', color:'FFE500'}}, {atk: 'Light', type: {name:'normal', color:'000000'}}] as Attack[];
+    const image = await generatePokemonMenu('pikachu', 25, 'bulbasaur', 1, 20, 20, 20, 20, attacks);
 
     return c.newResponse(image, 200, {
       'Content-Type': 'image/png',
