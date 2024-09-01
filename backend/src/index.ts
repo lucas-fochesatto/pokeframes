@@ -22,6 +22,7 @@ try {
   db.run('CREATE TABLE IF NOT EXISTS players (playerid INTEGER PRIMARY KEY, wallet TEXT, inventory TEXT, battles TEXT)');
   db.run('CREATE TABLE IF NOT EXISTS hashes (hash TEXT PRIMARY KEY)');
   db.run('CREATE TABLE IF NOT EXISTS battles (id TEXT PRIMARY KEY, maker TEXT, taker TEXT)');
+  db.run('CREATE TABLE IF NOT EXISTS battle_logs (id INTEGER PRIMARY KEY, battle_id TEXT, log TEXT)');
 
   db.run('INSERT INTO players (playerid, wallet, inventory, battles) VALUES (?, ?, ?, ?)', [1, '0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266', '[]', '[]']);
   db.run('UPDATE players SET inventory = ? WHERE playerid = ?', ['[25,24,23,12,16]', 1]);
@@ -112,6 +113,10 @@ const handleAdvance: AdvanceRequestHandler = async (data) => {
       await assignPokemon(senderId, senderWallet, pokemonId);
 
       advancePayload.pokemonId = pokemonId;
+    } else if(action === 'register-log') {
+      const { battleLog, battleId } = advancePayload;
+
+      db.run('INSERT INTO battle_logs (battle_id, log) VALUES (?, ?)', [battleId, battleLog]);
     }
 
     const noticePayload = toHex(JSON.stringify(advancePayload));
