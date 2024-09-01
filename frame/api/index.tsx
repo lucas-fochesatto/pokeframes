@@ -207,10 +207,10 @@ app.frame('/battle/handle', async (c) => {
       if(transactionReceipt?.status === 'success') {
         return c.res({
           title,
-          image: `/shareBattle.png`,
+          image: `/go!.png`,
           imageAspectRatio: '1:1',
           intents: [
-            <Button action={`/finish-battle-create`}>FINISH CREATION</Button>,
+            <Button action={`/finish-battle-create`}>GO! 🔥</Button>,
           ],
         })
       }
@@ -238,7 +238,7 @@ app.frame('/finish-battle-create', async (c) => {
   if(newBattleId === 'Already creating battle') {
     return c.res({
       title,
-      image: '/pokeball.gif',
+      image: '/loading.gif',
       imageAspectRatio: '1:1',
       intents: [
         <Button action={`/finish-battle-create`}>WAIT...</Button>,
@@ -256,10 +256,10 @@ app.frame('/finish-battle-create', async (c) => {
 
   return c.res({
     title,
-    image: `/ok.jpg`,
+    image: `/shareBattle.png`,
     imageAspectRatio: '1:1',
     intents: [
-      <Button.Link href={`${SHARE_INTENT}/${SHARE_TEXT}/${SHARE_EMBEDS}/${FRAME_URL}/battle/handle/${newBattleId}/${c.transactionId}`}>SHARE</Button.Link>,
+      <Button.Link href={`${SHARE_INTENT}/${SHARE_TEXT}/${SHARE_EMBEDS}/${FRAME_URL}/battle/share/${newBattleId}`}>SHARE</Button.Link>,
       <Button action={`/battle/${newBattleId}`}>BATTLE!</Button>,
     ],
   })
