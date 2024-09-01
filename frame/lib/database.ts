@@ -11,6 +11,7 @@ export const getBattleById = async (id: number) => {
 }
 
 let isMinting = false;
+let mintedPokemonId : number = 0;
 
 export const assignPokemonToUser = async (senderId: number, hash: `0x${string}`) => {
   console.log(isMinting);
@@ -28,14 +29,14 @@ export const assignPokemonToUser = async (senderId: number, hash: `0x${string}`)
     const data = await response.json()
   
     if(response.ok) {
-      const pokemonId = await queryInputNotice(fromHex(data.pokemonId.hex, `number`))
-      isMinting = true;
-      return pokemonId;
+      mintedPokemonId = await queryInputNotice(fromHex(data.pokemonId.hex, `number`))
+      isMinting = false;
+      return mintedPokemonId;
     } else {
       return "Failed to assign pokemon";
     }
   } else {
-    return "Already minting";
+    return mintedPokemonId;
   }
 }
 
