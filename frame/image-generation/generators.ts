@@ -207,3 +207,46 @@ export const generateWaitingRoom = async (
       throw error;
   }
 }
+
+function prettyName(inputString: string): string {
+  let lowerString = inputString.toLowerCase();
+  let resultString = lowerString.charAt(0).toUpperCase() + lowerString.slice(1);
+  return resultString;
+}
+export const generatePokemonCard = async (
+  pokemonId: number,
+  pokemonName: string,
+) => {
+  try {
+  const ComponentsArray = [];
+  
+  const baseImageBuffer = await sharp('./public/pokemons-base.png')
+  .resize(600, 600)
+  .png()
+  .toBuffer();
+
+  const usr1ImageBuffer = await sharp(`./public/pokemons/${pokemonId}.png`)
+  .resize(400, 400)
+  .png()
+  .toBuffer();
+
+  const pokemon = `
+  <svg width="248" height="65">
+    <text x="120" y="48" text-anchor="middle" font-family="Handjet" font-size="38" fill="white">${prettyName(pokemonName)}</text>
+  </svg>        
+  `
+
+  ComponentsArray.push({input: usr1ImageBuffer, top: 138, left: 113});
+  ComponentsArray.push({input: Buffer.from(pokemon), top: 23, left: 260});
+
+  const finalImage = await sharp(baseImageBuffer)
+  .composite(ComponentsArray)
+  .png()
+  .toBuffer();
+
+  return finalImage;
+  } catch(error) {
+      console.error("Error during battle checkout generation:", error);
+      throw error;
+  }
+}
