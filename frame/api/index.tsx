@@ -11,6 +11,7 @@ import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title }
 import { boundIndex } from '../lib/utils/boundIndex.js';
 import { generateGame, generateFight, generateBattleConfirm, generateWaitingRoom, generatePokemonCard, generatePokemonMenu } from '../image-generation/generators.js';
 import { Attack } from '../types/types.js';
+import { getPlayers } from '../lib/utils/battleUtils.js';
 
 type State = {
   verifiedAddresses?: `0x${string}`[];
@@ -359,9 +360,9 @@ app.frame('/finish-battle-join', async (c) => {
 //render pokemon active pokemons and basic stats (hp) 
 app.frame('/battle/:gameId', async (c) => {
   const fid = c.frameData?.fid;
-  const { pfp_url } = await getFarcasterUserInfo(fid) || 'error';
   if (fid) {
-    if (!pfp_url || pfp_url.length === 0) {
+    const { verifiedAddresses } = await getFarcasterUserInfo(fid);
+    if (!verifiedAddresses || verifiedAddresses.length === 0) {
       return c.res({
         title,
         image: 'https://i.imgur.com/2tRZhkQ.jpeg',
@@ -373,9 +374,9 @@ app.frame('/battle/:gameId', async (c) => {
       });
     }
     c.deriveState((prevState: any) => {
-      prevState.pfp_url = pfp_url;
+      prevState.verifiedAddresses = verifiedAddresses;
     });
-}
+  } 
   const gameId = Number(c.req.param('gameId'));
   const battle = await getBattleById(gameId);
   const battleStatus = battle.status;
@@ -383,7 +384,7 @@ app.frame('/battle/:gameId', async (c) => {
     case "waiting":
       return c.res({
         title,
-        image: `/image/waiting/${pfp_url}`,
+        image: `/image/waiting`,
         imageAspectRatio: '1:1',
         intents: [
           <Button action={`/battle/${gameId}`}>RELOAD 🔄️</Button>,
@@ -395,7 +396,7 @@ app.frame('/battle/:gameId', async (c) => {
 
   return c.res({
     title,
-    image: '/image/vs/',
+    image: `/image/vs/${gameId}/user/${fid}`,
     imageAspectRatio: '1:1',
     intents: [
       <Button action={`/battle/${gameId}/fight`}>FIGHT</Button>,
@@ -717,9 +718,22 @@ app.frame('/test', (c) => {
   })
 })
 
-app.hono.get('/image/vs', async (c) => {
+app.hono.get('/image/vs/:gameId/user/:userFid', async (c) => {
+  const battle : any = await getBattleById(Number(c.req.param('gameId')));
+
+  const { player, opponent } = getPlayers(Number(c.req.param('userFid')), battle);
+  console.log(player)
   try {
-    const image = await generateGame(`pikachu`, '25', `charmander`, '3', 20, 4, 30, 30);
+    const image = await generateGame(
+      player.currentPokemon.name.toString(), 
+      player.currentPokemon.id, 
+      opponent.currentPokemon.name.toLowerCase(), 
+      opponent.currentPokemon.id, 
+      player.currentPokemon.hp, 
+      player.currentPokemon.status.currentHP, 
+      opponent.currentPokemon.hp, 
+      opponent.currentPokemon.status.currentHP, 
+    );
 
     return c.newResponse(image, 200, {
       'Content-Type': 'image/png',
