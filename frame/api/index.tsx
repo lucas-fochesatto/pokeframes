@@ -11,7 +11,7 @@ import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title }
 import { boundIndex } from '../lib/utils/boundIndex.js';
 import { generateGame, generateFight, generateBattleConfirm, generateWaitingRoom, generatePokemonCard, generatePokemonMenu } from '../image-generation/generators.js';
 import { Attack } from '../types/types.js';
-import { getPlayers } from '../lib/utils/battleUtils.js';
+import { getPlayers, verifyMakerOrTaker } from '../lib/utils/battleUtils.js';
 
 type State = {
   verifiedAddresses?: `0x${string}`[];
@@ -381,17 +381,21 @@ app.frame('/battle/:gameId', async (c) => {
   const gameId = Number(c.req.param('gameId'));
   const battle = await getBattleById(gameId);
   const battleStatus = battle.status;
-  switch(battleStatus) {
-    case "waiting":
-      return c.res({
-        title,
-        image: `/image/waiting`,
-        imageAspectRatio: '1:1',
-        intents: [
-          <Button action={`/battle/${gameId}`}>RELOAD 🔄️</Button>,
-        ]
-      });
+  
+  if (battleStatus === "waiting") {
+    return c.res({
+      title,
+      image: `/waiting-for-p2.png`,
+      imageAspectRatio: '1:1',
+      intents: [
+        <Button action={`/battle/${gameId}`}>RELOAD 🔄️</Button>,
+      ]
+    });
   }
+  
+  c.deriveState((prevState: any) => {
+    prevState.hasMoved = false;
+  });
 
   return c.res({
     title,
@@ -418,10 +422,18 @@ app.frame('/battle/share/:gameId', async (c) => {
   })
 });
 
-app.frame('/checkout', async (c) => {
-  // const gameId = c.req.param('gameId');
-  const gameId = `loser`;
-  if(gameId === 'winner') {
+app.frame('/battle/:gameId/checkout', async (c) => {
+  const { frameData } = c;
+  const fid = frameData?.fid;
+  
+  const gameId = Number(c.req.param('gameId'));
+  const battle : any = await getBattleById(gameId);
+
+  const role = verifyMakerOrTaker(fid!, battle);
+  console.log(role);
+  const winner = battle.battle_log[battle.battle_log.length - 1].split(' ')[0];
+
+  if(winner === role) {
     return c.res({
       title,
       image: '/winner.png',
@@ -430,15 +442,16 @@ app.frame('/checkout', async (c) => {
         <Button action='/'>PLAY AGAIN 🔄️</Button>,
       ]
     })
+  } else {
+    return c.res({
+      title,
+      image: '/loser.png',
+      imageAspectRatio: '1:1',
+      intents: [
+        <Button action='/'>PLAY AGAIN 🔄️</Button>,
+      ]
+    })
   }
-  return c.res({
-    title,
-    image: '/loser.png',
-    imageAspectRatio: '1:1',
-    intents: [
-      <Button action='/'>PLAY AGAIN 🔄️</Button>,
-    ]
-  })
 });
 
 app.frame('/battle/:gameId/fight', async (c) => {
@@ -494,13 +507,24 @@ app.frame('/battle/:gameId/waiting/:value', async (c) => {
 
   const updatedBattle = await getBattleById(gameId);
 
+  if(updatedBattle.status === 'ended') {
+    return c.res({
+      title,
+      image: '/winner.png',
+      imageAspectRatio: '1:1',
+      intents: [
+        <Button action={`/battle/${gameId}/checkout`}>PLAY AGAIN 🔄️</Button>,
+      ]
+    })
+  }
+
   if(updatedBattle.maker_move == null && updatedBattle.taker_move == null) {
     return c.res({
       title,
       image: '/waiting-for-p2.png',
       imageAspectRatio: '1:1',
       intents: [
-        <Button action={`/battle/${gameId}/fight`}>🔄️</Button>,
+        <Button action={`/battle/${gameId}`}>🔄️</Button>,
       ]
     })
   } else {

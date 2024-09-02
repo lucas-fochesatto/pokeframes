@@ -63,3 +63,15 @@ export const getPlayers = (userFid: number, battle: Battle) => {
 
   return { player, opponent };
 }
+
+export const verifyMakerOrTaker = (userFid: number, battle: Battle) => {
+  // check if user is in the battle
+  if (userFid != battle.maker && userFid != battle.taker) {
+    return "none";
+  }
+  if (battle.maker === userFid) {
+    return "maker";
+  } else if (battle.taker === userFid) {
+    return "taker";
+  }
+}
