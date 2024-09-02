@@ -39,6 +39,7 @@ Check out the following links to see the game in action and explore its features
 - **[GitHub Backend Repository](https://github.com/lucas-fochesatto/pokemon-backend)**: Access the source code and contribute to the project.
 - **Screenshots**: Below are some screenshots of our application:
 
-  ![Screenshot 1](https://example.com/screenshot1.png)
-  ![Screenshot 2](https://example.com/screenshot2.png)
+  ![Screenshot 1](frame/public/welcome.png)
+  ![Screenshot 2](frame/public/shareBattle.png)
+  ![Screenshot 3](frame/public/waiting.png)
 
