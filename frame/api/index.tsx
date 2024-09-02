@@ -431,15 +431,15 @@ app.frame('/checkout', async (c) => {
         <Button action='/'>PLAY AGAIN 🔄️</Button>,
       ]
     })
-}
-return c.res({
-  title,
-  image: '/loser.png',
-  imageAspectRatio: '1:1',
-  intents: [
-    <Button action='/'>PLAY AGAIN 🔄️</Button>,
-  ]
-})
+  }
+  return c.res({
+    title,
+    image: '/loser.png',
+    imageAspectRatio: '1:1',
+    intents: [
+      <Button action='/'>PLAY AGAIN 🔄️</Button>,
+    ]
+  })
 });
 
 app.frame('/battle/:gameId/fight', async (c) => {
