@@ -27,7 +27,8 @@ export const getPlayers = (userFid: number, battle: Battle) => {
       pokemons: makerPokemons,
       battling_pokemons: makerBattlingPokemons,
       move: battle.maker_move,
-      currentPokemon: makerPokemons[makerBattlingPokemons[0]]
+      currentPokemon: makerPokemons[makerBattlingPokemons[0]],
+      secondaryPokemon: makerPokemons[makerBattlingPokemons[1]]
     };
 
     opponent = {
@@ -35,7 +36,8 @@ export const getPlayers = (userFid: number, battle: Battle) => {
       pokemons: takerPokemons,
       battling_pokemons: takerBattlingPokemons,
       move: battle.taker_move,
-      currentPokemon: takerPokemons[takerBattlingPokemons[0]]
+      currentPokemon: takerPokemons[takerBattlingPokemons[0]],
+      secondaryPokemon: takerPokemons[takerBattlingPokemons[1]]
     };
   } else {
     player = {
@@ -43,7 +45,9 @@ export const getPlayers = (userFid: number, battle: Battle) => {
       pokemons: takerPokemons,
       battling_pokemons: takerBattlingPokemons,
       move: battle.taker_move,
-      currentPokemon: takerPokemons[takerBattlingPokemons[0]]
+      currentPokemon: takerPokemons[takerBattlingPokemons[0]],
+      secondaryPokemon: takerPokemons[takerBattlingPokemons[1]]
+
     };
 
     opponent = {
@@ -51,7 +55,9 @@ export const getPlayers = (userFid: number, battle: Battle) => {
       pokemons: makerPokemons,
       battling_pokemons: makerBattlingPokemons,
       move: battle.maker_move,
-      currentPokemon: makerPokemons[makerBattlingPokemons[0]]
+      currentPokemon: makerPokemons[makerBattlingPokemons[0]],
+      secondaryPokemon: makerPokemons[makerBattlingPokemons[1]]
+
     };
   }
 

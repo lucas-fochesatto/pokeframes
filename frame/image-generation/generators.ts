@@ -73,6 +73,7 @@ export const generateFight = async (
     totalHp: number,
     currentHp: number,
     attacks: Attack [],
+    stats: any
   ) => {
     try {
       const fightComponents = (() => {
@@ -94,9 +95,9 @@ export const generateFight = async (
         const hphp = hpHp(currentHp, totalHp);
         const pokemon1SVG = pokemonSVG(pokemonName);
         const hp1SVG = hpSVG(currentHp, totalHp);
-        const attack = statusPokemon('6');
-        const defense = statusPokemon('6');
-        const speed = statusPokemon('6');
+        const attack = statusPokemon(stats.atk);
+        const defense = statusPokemon(stats.def);
+        const speed = statusPokemon(stats.spd);
         const accuracy = statusPokemon('6');
         const evasiveness = statusPokemon('6');
         components.push({ input: Buffer.from(atk1), top: 183, left: 59 });
@@ -300,8 +301,8 @@ export const generatePokemonMenu = async (
       components.push({  input: Buffer.from(attackType(attacks[0])), top:189, left:445 });
       components.push({  input: Buffer.from(typeBox2(attacks[1])), top:241, left:445 });
       components.push({  input: Buffer.from(attackType(attacks[1])), top:241, left:445 });
-      components.push({  input: Buffer.from(attackType(attacks[2])), top:293, left:445 });
       components.push({  input: Buffer.from(typeBox2(attacks[2])), top:293, left:445 });
+      components.push({  input: Buffer.from(attackType(attacks[2])), top:293, left:445 });
       components.push({  input: Buffer.from(attack), top:192, left:133 });
       components.push({  input: Buffer.from(defense), top:221, left:133 });
       components.push({  input: Buffer.from(speed), top:247, left:133 });
