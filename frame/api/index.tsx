@@ -6,7 +6,7 @@ import { devtools } from 'frog/dev';
 import { handle } from 'frog/vercel';
 import { serve } from '@hono/node-server';
 // import { BACKEND_URL } from '../constant/config.js';
-import { assignPokemonToUser, createBattle, getBattleById, getPokemonName, getPokemonsByPlayerId, joinBattle, queryInputNotice, playersMoved, setSelectedPokemons } from '../lib/database.js';
+import { assignPokemonToUser, createBattle, getBattleById, getPokemonName, getPokemonsByPlayerId, joinBattle, queryInputNotice, playersMoved, setSelectedPokemons, makeMove } from '../lib/database.js';
 import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title } from '../constant/config.js';
 import { boundIndex } from '../lib/utils/boundIndex.js';
 import { generateGame, generateFight, generateBattleConfirm, generateWaitingRoom, generatePokemonCard, generatePokemonMenu } from '../image-generation/generators.js';
@@ -23,6 +23,7 @@ type State = {
   isMaker?: boolean;
   joinableBattleId?: number;
   isLoading?: boolean;
+  hasMoved?: boolean;
 }
 
 export const app = new Frog<{ State: State }>({
@@ -392,15 +393,13 @@ app.frame('/battle/:gameId', async (c) => {
       });
   }
 
-  console.log(battle);
-
   return c.res({
     title,
     image: `/image/vs/${gameId}/user/${fid}`,
     imageAspectRatio: '1:1',
     intents: [
       <Button action={`/battle/${gameId}/fight`}>FIGHT</Button>,
-      <Button action={`/battle/${gameId}/pokemon/0`}>POKEMON</Button>,
+      <Button action={`/battle/${gameId}/pokemon`}>POKEMON</Button>,
       <Button action={`/battle/${gameId}/run`}>RUN</Button>
     ]
   })
@@ -444,22 +443,24 @@ app.frame('/checkout', async (c) => {
 
 app.frame('/battle/:gameId/fight', async (c) => {
   const gameId = c.req.param('gameId') as string;
+  const { frameData } = c;
+  const fid = frameData?.fid;
   // TODO: a function to update the battle log and status
   return c.res({
     title,
-    image: '/image/fight',
+    image: `/image/fight/${gameId}/user/${fid}`,
     imageAspectRatio: '1:1',
     intents: [
-      <Button action={`/battle/${gameId}/confirm`}>1</Button>,
-      <Button action={`/battle/${gameId}/confirm`}>2</Button>,
-      <Button action={`/battle/${gameId}/confirm`}>3</Button>,
+      <Button value='1' action={`/battle/${gameId}/confirm`}>1</Button>,
+      <Button value='2' action={`/battle/${gameId}/confirm`}>2</Button>,
+      <Button value='3' action={`/battle/${gameId}/confirm`}>3</Button>,
       <Button action={`/battle/${gameId}`}>↩️</Button>
     ]
   })
 });
 
 app.frame('/battle/:gameId/confirm', async (c) => {
-  const id = c.req.param('id') as string;
+  const { buttonValue } = c;
   const gameId = c.req.param('gameId') as string;
 
   return c.res({
@@ -467,17 +468,33 @@ app.frame('/battle/:gameId/confirm', async (c) => {
     image: '/confirm-move.png',
     imageAspectRatio: '1:1',
     intents: [
-      <Button action={`/battle/${gameId}/waiting`}>🔄️</Button>,
-      <Button action={`/battle/${gameId}/fight`}>↩️</Button>
+      <Button action={`/battle/${gameId}/waiting/${buttonValue}`}>YES</Button>,
+      <Button action={`/battle/${gameId}/fight`}>↩NO</Button>
     ]
   })
 });
 
-app.frame('/battle/:gameId/waiting', async (c) => {
-  const id = c.req.param('id') as string;
+app.frame('/battle/:gameId/waiting/:value', async (c) => {
+  const { frameData } = c;
+  const fid = frameData?.fid;
+  const hasMoved = c.previousState?.hasMoved;
+
   const gameId = Number(c.req.param('gameId'));
-  const battle = await getBattleById(gameId);
-  if (response === 'Both players have already moved') {
+  const value = Number(c.req.param('value'));
+
+  if(!hasMoved) {
+    const battle : any = await getBattleById(gameId)
+    const { player } = getPlayers(fid!, battle);
+    await makeMove(gameId, fid!, player.currentPokemon.moves[value-1]);
+  
+    c.deriveState((prevState: any) => {
+      prevState.hasMoved = true;
+    });
+  }
+
+  const updatedBattle = await getBattleById(gameId);
+
+  if(updatedBattle.maker_move == null && updatedBattle.taker_move == null) {
     return c.res({
       title,
       image: '/waiting-for-p2.png',
@@ -486,24 +503,26 @@ app.frame('/battle/:gameId/waiting', async (c) => {
         <Button action={`/battle/${gameId}/fight`}>🔄️</Button>,
       ]
     })
+  } else {
+    return c.res({
+      title,
+      image: '/waiting-for-p2.png',
+      imageAspectRatio: '1:1',
+      intents: [
+        <Button action={`/battle/${gameId}/waiting/${value}`}>🔄️</Button>,
+      ]
+    })
   }
-  return c.res({
-    title,
-    image: '/waiting-for-p2.png',
-    imageAspectRatio: '1:1',
-    intents: [
-      <Button action={`/battle/${gameId}/waiting`}>🔄️</Button>,
-    ]
-  })
 });
 
-app.frame('/battle/:gameId/pokemon/:id', async (c) => {
-  const id = c.req.param('id') as string;
+app.frame('/battle/:gameId/pokemon', async (c) => {
+  const { frameData } = c;
+  const fid = frameData?.fid;
   const gameId = c.req.param('gameId') as string;
 
   return c.res({
     title,
-    image: '/image/fight',
+    image: `/image/pokemenu/${gameId}/user/${fid}`,
     imageAspectRatio: '1:1',
     intents: [
       <Button action={`/battle/${gameId}`}>🔄️</Button>,
@@ -731,7 +750,7 @@ app.hono.get('/image/vs/:gameId/user/:userFid', async (c) => {
   const battle : any = await getBattleById(Number(c.req.param('gameId')));
 
   const { player, opponent } = getPlayers(Number(c.req.param('userFid')), battle);
-  console.log(player)
+  // console.log(player)
   try {
     const image = await generateGame(
       player.currentPokemon.name.toString(), 
@@ -754,10 +773,36 @@ app.hono.get('/image/vs/:gameId/user/:userFid', async (c) => {
   }
 });
 
-app.hono.get('/image/pokemenu', async (c) => {
+app.hono.get('/image/pokemenu/:gameId/user/:userFid', async (c) => {
   try {
-    const attacks = [{atk: 'Tackle', type: {name:'normal', color:'919191'}}, {atk: 'Thunderbolt', type: {name:'electric', color:'FFE500'}}, {atk: 'Light', type: {name:'normal', color:'000000'}}] as Attack[];
-    const image = await generatePokemonMenu('pikachu', 25, 'bulbasaur', 1, 20, 20, 20, 20, attacks);
+    const userFid = Number(c.req.param('userFid'));
+    const battle : any = await getBattleById(Number(c.req.param('gameId')));
+    const { player } = getPlayers(userFid, battle)
+
+    const currentPokemon = player.currentPokemon;
+
+    console.log(currentPokemon.moveDetails);
+
+    let attacks : any = [];
+
+    currentPokemon.moveDetails.forEach((move: any) => {
+      attacks.push({atk: move.name, type: {name: move.type, color: '000000'}});
+    })
+
+    console.log(attacks);
+
+    // const attacks = [{atk: 'Tackle', type: {name:'normal', color:'919191'}}, {atk: 'Thunderbolt', type: {name:'electric', color:'FFE500'}}, {atk: 'Light', type: {name:'normal', color:'000000'}}] as Attack[];
+    const image = await generatePokemonMenu(
+      player.currentPokemon.name, 
+      player.currentPokemon.id, 
+      player.secondaryPokemon.name, 
+      player.secondaryPokemon.id, 
+      player.currentPokemon.hp, 
+      player.currentPokemon.status.currentHP, 
+      player.secondaryPokemon.hp, 
+      player.secondaryPokemon.status.currentHP, 
+      attacks
+    );
 
     return c.newResponse(image, 200, {
       'Content-Type': 'image/png',
@@ -816,10 +861,26 @@ app.hono.get('/image/checkout/:p1/:p2/:p3', async (c) => {
   }
 });
 
-app.hono.get('/image/fight', async (c) => {
+app.hono.get('/image/fight/:gameId/user/:userFid', async (c) => {
   try {
-    const attacks = [{atk: 'Tackle', type: {name:'normal', color:'919191'}}, {atk: 'Thunderbolt', type: {name:'electric', color:'FFE500'}}, {atk: 'Light', type: {name:'normal', color:'000000'}}] as Attack[];
-    const image = await generateFight('pikachu', 25, 20, 20, attacks)
+    const gameId = Number(c.req.param('gameId'));
+    const battle : any = await getBattleById(gameId);
+    const { player } = getPlayers(Number(c.req.param('userFid')), battle);
+
+    let attacks : any = [];
+    
+
+    player.currentPokemon.moveDetails.forEach((move : any) => {
+      attacks.push({atk: move.name, type: {name: move.type, color: '000000'}});
+    })
+
+    const status = {
+      atk: player.currentPokemon.attack,
+      def: player.currentPokemon.defense,
+      spd: player.currentPokemon.speed,
+    }
+
+    const image = await generateFight(player.currentPokemon.name, player.currentPokemon.id, player.currentPokemon.hp, player.currentPokemon.status.currentHP, attacks, status)
 
     return c.newResponse(image, 200, {
       'Content-Type': 'image/png',

@@ -193,20 +193,19 @@ export const setSelectedPokemons = async (battleId: number, userFid: number, sel
   }
 }
 
-export const playersMoved = async (gameId: string, fid: number, move: any) => {
+export const makeMove = async (battleId: number, userFid: number, move: number) => {
   const response = await fetch(`${BACKEND_URL}/make-move`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({gameId, fid, move})
+    body: JSON.stringify({battleId, userFid, move})
   })
 
   if(response.ok) {
     const data = await response.json();
     return data;
   } else {
-    return "Failed to get battle status";
-  }
+    return "Failed to make move";
   }
 }
