@@ -387,6 +387,29 @@ app.frame('/battle/share/:gameId', async (c) => {
   })
 });
 
+app.frame('/checkout', async (c) => {
+  // const gameId = c.req.param('gameId');
+  const gameId = `loser`;
+  if(gameId === 'winner') {
+    return c.res({
+      title,
+      image: '/winner.png',
+      imageAspectRatio: '1:1',
+      intents: [
+        <Button action='/'>PLAY AGAIN 🔄️</Button>,
+      ]
+    })
+}
+return c.res({
+  title,
+  image: '/loser.png',
+  imageAspectRatio: '1:1',
+  intents: [
+    <Button action='/'>PLAY AGAIN 🔄️</Button>,
+  ]
+})
+});
+
 app.frame('/battle/:gameId/fight', async (c) => {
   const gameId = c.req.param('gameId') as string;
   // TODO: a function to update the battle log and status
@@ -395,10 +418,40 @@ app.frame('/battle/:gameId/fight', async (c) => {
     image: '/image/fight',
     imageAspectRatio: '1:1',
     intents: [
-      <Button action={`/battle/${gameId}`}>1</Button>,
-      <Button action={`/battle/${gameId}`}>2</Button>,
-      <Button action={`/battle/${gameId}`}>3</Button>,
+      <Button action={`/battle/${gameId}/confirm`}>1</Button>,
+      <Button action={`/battle/${gameId}/confirm`}>2</Button>,
+      <Button action={`/battle/${gameId}/confirm`}>3</Button>,
       <Button action={`/battle/${gameId}`}>↩️</Button>
+    ]
+  })
+});
+
+app.frame('/battle/:gameId/confirm', async (c) => {
+  const id = c.req.param('id') as string;
+  const gameId = c.req.param('gameId') as string;
+
+  return c.res({
+    title,
+    image: '/confirm-move.png',
+    imageAspectRatio: '1:1',
+    intents: [
+      <Button action={`/battle/${gameId}/waiting`}>🔄️</Button>,
+      <Button action={`/battle/${gameId}/fight`}>↩️</Button>
+    ]
+  })
+});
+
+app.frame('/battle/:gameId/waiting', async (c) => {
+  const id = c.req.param('id') as string;
+  const gameId = c.req.param('gameId') as string;
+
+  return c.res({
+    title,
+    image: '/waiting-for-p2.png',
+    imageAspectRatio: '1:1',
+    intents: [
+      <Button action={`/battle/${gameId}/waiting`}>🔄️</Button>,
+      <Button action={`/battle/${gameId}/fight`}>↩️</Button>
     ]
   })
 });
@@ -413,7 +466,7 @@ app.frame('/battle/:gameId/pokemon/:id', async (c) => {
     imageAspectRatio: '1:1',
     intents: [
       <Button action={`/battle/${gameId}`}>🔄️</Button>,
-      <Button action={`/battle/${gameId}`}>ENEMY 🔎</Button>,
+      // <Button action={`/battle/${gameId}`}>ENEMY 🔎</Button>,
       <Button action={`/battle/${gameId}`}>↩️</Button>
     ]
   })
