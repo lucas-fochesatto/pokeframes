@@ -148,21 +148,48 @@ export const queryInputNotice = async (inputIndex: number) => {
   }
 }
 
+let isJoiningBattle = false;
+
 export const joinBattle = async (battleId: number, taker: number, taker_pokemons: number[]) => {
-  const response = await fetch(`${BACKEND_URL}/join-battle`, {
+  if(!isJoiningBattle) {
+    isJoiningBattle = true;
+    const response = await fetch(`${BACKEND_URL}/join-battle`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ battleId, taker, taker_pokemons: JSON.stringify(taker_pokemons) })
+    })
+  
+    if(response.ok) {
+      const data = await response.json();
+
+      const { message } = data.message;
+
+      isJoiningBattle = false;
+  
+      return message;
+    } else {
+      return "Failed to join battle";
+    }
+  } else {
+    return "Already joining battle";
+  }
+}
+
+export const setSelectedPokemons = async (battleId: number, userFid: number, selectedPokemons: number[]) => {
+  const response = await fetch(`${BACKEND_URL}/select-pokemons`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify({ battleId, taker, taker_pokemons: JSON.stringify(taker_pokemons) })
+    body: JSON.stringify({ battleId, userFid, pokemons: JSON.stringify(selectedPokemons) })
   })
 
   if(response.ok) {
-    const data = await response.json();
-
-    return data;
+    return "Selected pokemons updated";
   } else {
-    return "Failed to join battle";
+    return "Failed to update selected pokemons";
   }
 }
 

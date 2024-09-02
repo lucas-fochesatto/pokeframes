@@ -4,9 +4,9 @@ import { attackType, hpHp, hpSVG, moves, moves2, pokemonSVG, statusPokemon, type
 
 export const generateGame = async (
     pokemon1Name: string,
-    pokemon1Id: string,
+    pokemon1Id: number,
     pokemon2Name: string,
-    pokemon2Id: string,
+    pokemon2Id: number,
     totalHP1: number,
     currentHp1: number,
     totalHP2: number,
@@ -39,12 +39,12 @@ export const generateGame = async (
   
       const gameComponentsArray = gameComponents();
   
-      const pokemon1ImageBuffer = await sharp('./public/pokemons/3.png')
+      const pokemon1ImageBuffer = await sharp(`./public/pokemons/${pokemon1Id}.png`)
         .resize(200, 200)
         .png()
         .toBuffer();
   
-      const pokemon2ImageBuffer = await sharp('./public/pokemons/25.png')
+      const pokemon2ImageBuffer = await sharp(`./public/pokemons/${pokemon2Id}.png`)
         .resize(200, 200)
         .png()
         .toBuffer();
