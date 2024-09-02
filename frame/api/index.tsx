@@ -6,7 +6,7 @@ import { devtools } from 'frog/dev';
 import { handle } from 'frog/vercel';
 import { serve } from '@hono/node-server';
 // import { BACKEND_URL } from '../constant/config.js';
-import { assignPokemonToUser, createBattle, getBattleById, getPokemonName, getPokemonsByPlayerId, joinBattle, queryInputNotice } from '../lib/database.js';
+import { assignPokemonToUser, createBattle, getBattleById, getPokemonName, getPokemonsByPlayerId, joinBattle, playersMoved, queryInputNotice } from '../lib/database.js';
 import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title } from '../constant/config.js';
 import { boundIndex } from '../lib/utils/boundIndex.js';
 import { generateGame, generateFight, generateBattleConfirm, generateWaitingRoom, generatePokemonCard, generatePokemonMenu } from '../image-generation/generators.js';
@@ -443,15 +443,24 @@ app.frame('/battle/:gameId/confirm', async (c) => {
 
 app.frame('/battle/:gameId/waiting', async (c) => {
   const id = c.req.param('id') as string;
-  const gameId = c.req.param('gameId') as string;
-
+  const gameId = Number(c.req.param('gameId'));
+  const battle = await getBattleById(gameId);
+  if (response === 'Both players have already moved') {
+    return c.res({
+      title,
+      image: '/waiting-for-p2.png',
+      imageAspectRatio: '1:1',
+      intents: [
+        <Button action={`/battle/${gameId}/fight`}>🔄️</Button>,
+      ]
+    })
+  }
   return c.res({
     title,
     image: '/waiting-for-p2.png',
     imageAspectRatio: '1:1',
     intents: [
       <Button action={`/battle/${gameId}/waiting`}>🔄️</Button>,
-      <Button action={`/battle/${gameId}/fight`}>↩️</Button>
     ]
   })
 });
