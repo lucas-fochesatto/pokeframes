@@ -11,7 +11,7 @@ import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title }
 import { boundIndex } from '../lib/utils/boundIndex.js';
 import { generateGame, generateFight, generateBattleConfirm, generateWaitingRoom, generatePokemonCard, generatePokemonMenu } from '../image-generation/generators.js';
 import { getPlayers, verifyMakerOrTaker } from '../lib/utils/battleUtils.js';
-import { getPokemonTypeColor } from '../lib/utils/pkmTypeColor.js';
+import { getPokemonTypeColor } from '../image-generation/pkmTypeColor.js';
 
 type State = {
   verifiedAddresses?: `0x${string}`[];
