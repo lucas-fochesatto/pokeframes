@@ -1,17 +1,17 @@
-import { serveStatic } from '@hono/node-server/serve-static'
-import { Button, Frog, parseEther } from 'frog'
+import { serveStatic } from '@hono/node-server/serve-static';
+import { Button, Frog, parseEther } from 'frog';
 import { getFarcasterUserInfo } from '../lib/neynar.js';
 import { publicClient } from '../lib/contracts.js';
 import { devtools } from 'frog/dev';
 import { handle } from 'frog/vercel';
 import { serve } from '@hono/node-server';
 // import { BACKEND_URL } from '../constant/config.js';
-import { assignPokemonToUser, createBattle, getBattleById, getPokemonName, getPokemonsByPlayerId, joinBattle, queryInputNotice, playersMoved, setSelectedPokemons, makeMove } from '../lib/database.js';
+import { assignPokemonToUser, createBattle, getBattleById, getPokemonName, getPokemonsByPlayerId, joinBattle, setSelectedPokemons, makeMove } from '../lib/database.js';
 import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title } from '../constant/config.js';
 import { boundIndex } from '../lib/utils/boundIndex.js';
 import { generateGame, generateFight, generateBattleConfirm, generateWaitingRoom, generatePokemonCard, generatePokemonMenu } from '../image-generation/generators.js';
-import { Attack } from '../types/types.js';
 import { getPlayers, verifyMakerOrTaker } from '../lib/utils/battleUtils.js';
+import { getPokemonTypeColor } from '../lib/utils/pkmTypeColor.js';
 
 type State = {
   verifiedAddresses?: `0x${string}`[];
@@ -810,7 +810,7 @@ app.hono.get('/image/pokemenu/:gameId/user/:userFid', async (c) => {
     let attacks : any = [];
 
     currentPokemon.moveDetails.forEach((move: any) => {
-      attacks.push({atk: move.name, type: {name: move.type, color: '000000'}});
+      attacks.push({atk: move.name, type: {name: move.type, color: getPokemonTypeColor(move.type)}});
     })
 
     console.log(attacks);
@@ -895,7 +895,7 @@ app.hono.get('/image/fight/:gameId/user/:userFid', async (c) => {
     
 
     player.currentPokemon.moveDetails.forEach((move : any) => {
-      attacks.push({atk: move.name, type: {name: move.type, color: '000000'}});
+      attacks.push({atk: move.name, type: {name: move.type, color: getPokemonTypeColor(move.type)}});
     })
 
     const status = {
