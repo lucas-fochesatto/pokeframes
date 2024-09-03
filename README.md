@@ -35,7 +35,7 @@ The game is built on the Cartesi framework, a layer-2 solution for blockchain ap
 
 Check out the following links to see the game in action and explore its features:
 
-- **[Demo Video](https://example.com/demo-video-link)**: Watch a demo video of the game showcasing minting, battling, and blockchain integration.
+- **[Demo Video](https://drive.google.com/drive/folders/10cjj3BGCgKC2YtmGi9jVt1cAG66dp_-T?usp=drive_link)**: Watch a demo video of the game showcasing minting, battling, and blockchain integration.
 - **[GitHub Backend Repository](https://github.com/lucas-fochesatto/pokemon-backend)**: Access the source code and contribute to the project.
 - **Screenshots**: Below are some screenshots of our application:
 
