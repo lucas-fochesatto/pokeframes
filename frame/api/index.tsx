@@ -378,8 +378,12 @@ app.frame('/battle/:gameId', async (c) => {
       prevState.verifiedAddresses = verifiedAddresses;
     });
   } 
+
   const gameId = Number(c.req.param('gameId'));
   const battle = await getBattleById(gameId);
+
+  console.log(battle);
+  
   const battleStatus = battle.status;
   
   if (battleStatus === "waiting") {
