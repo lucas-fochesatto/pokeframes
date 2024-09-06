@@ -13,6 +13,7 @@ import { generateGame, generateFight, generateBattleConfirm, generateWaitingRoom
 import { getPlayers, verifyMakerOrTaker } from '../lib/utils/battleUtils.js';
 import { validateFramesPost } from '@xmtp/frames-validator';
 import { Context, Next } from 'hono';
+import { getPokemonTypeColor } from '../image-generation/pkmTypeColor.js';
 
 type State = {
   verifiedAddresses?: `0x${string}`[];
@@ -406,8 +407,12 @@ app.frame('/battle/:gameId', async (c) => {
       prevState.verifiedAddresses = verifiedAddresses;
     });
   } 
+
   const gameId = Number(c.req.param('gameId'));
   const battle = await getBattleById(gameId);
+
+  console.log(battle);
+  
   const battleStatus = battle.status;
   
   if (battleStatus === "waiting") {
@@ -837,7 +842,7 @@ app.hono.get('/image/pokemenu/:gameId/user/:userFid', async (c) => {
     let attacks : any = [];
 
     currentPokemon.moveDetails.forEach((move: any) => {
-      attacks.push({atk: move.name, type: {name: move.type, color: '000000'}});
+      attacks.push({atk: move.name, type: {name: move.type, color: getPokemonTypeColor(move.type)}});
     })
 
     console.log(attacks);
@@ -921,7 +926,7 @@ app.hono.get('/image/fight/:gameId/user/:userFid', async (c) => {
     let attacks : any = [];
     
     player.currentPokemon.moveDetails.forEach((move : any) => {
-      attacks.push({atk: move.name, type: {name: move.type, color: '000000'}});
+      attacks.push({atk: move.name, type: {name: move.type, color: getPokemonTypeColor(move.type)}});
     })
 
     const status = {

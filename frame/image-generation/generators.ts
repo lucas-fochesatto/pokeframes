@@ -221,6 +221,7 @@ function prettyName(inputString: string): string {
   let resultString = lowerString.charAt(0).toUpperCase() + lowerString.slice(1);
   return resultString;
 }
+
 export const generatePokemonCard = async (
   pokemonId: number,
   pokemonName: string,
