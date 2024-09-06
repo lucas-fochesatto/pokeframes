@@ -95,11 +95,11 @@ export const generateFight = async (
         const hphp = hpHp(currentHp, totalHp);
         const pokemon1SVG = pokemonSVG(pokemonName);
         const hp1SVG = hpSVG(currentHp, totalHp);
-        const attack = statusPokemon(stats.atk);
+        /* const attack = statusPokemon(stats.atk);
         const defense = statusPokemon(stats.def);
-        const speed = statusPokemon(stats.spd);
-        const accuracy = statusPokemon('6');
-        const evasiveness = statusPokemon('6');
+        const speed = statusPokemon(stats.spd); */
+        //const accuracy = statusPokemon('6');
+        //const evasiveness = statusPokemon('6');
         components.push({ input: Buffer.from(atk1), top: 183, left: 59 });
         components.push({ input: Buffer.from(atk2), top: 183, left: 324 });
         components.push({ input: Buffer.from(atk3), top: 313, left: 59 });
@@ -113,11 +113,11 @@ export const generateFight = async (
         components.push({  input: Buffer.from(attackType(attacks[1])), top:226, left:323 });
         components.push({  input: Buffer.from(typeBox(attacks[2])), top:355, left:60 });
         components.push({  input: Buffer.from(attackType(attacks[2])), top:355, left:60 });
-        components.push({  input: Buffer.from(attack), top:202, left:133 });
+        /* components.push({  input: Buffer.from(attack), top:202, left:133 });
         components.push({  input: Buffer.from(defense), top:231, left:133 });
         components.push({  input: Buffer.from(speed), top:257, left:133 });
         components.push({  input: Buffer.from(accuracy), top:292, left:133 });
-        components.push({  input: Buffer.from(evasiveness), top:316, left:133 });
+        components.push({  input: Buffer.from(evasiveness), top:316, left:133 }); */
 
         return components;
      })
