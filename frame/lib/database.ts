@@ -1,4 +1,4 @@
-import { BACKEND_URL, GRAPHQL_URL } from "../constant/config";
+import { BACKEND_URL } from "../constant/config";
 import { Battle } from "../types/types";
 import { fromHex } from 'viem'
 
@@ -91,53 +91,6 @@ export const createBattle = async (maker: number, maker_pokemons: number[]) => {
     }
   } else {
     return "Already creating battle";
-  }
-}
-
-export const queryInputNotice = async (inputIndex: number) => {
-  try {
-    const query = `
-      query noticesByInput($inputIndex: Int!) {
-        input(index: $inputIndex) {
-          notices {
-            edges {
-              node {
-                index
-                input {
-                  index
-                }
-                payload
-              }
-            }
-          }
-        }
-      }
-    `;
-  
-    const variables = {
-      inputIndex, // Replace 123 with the desired value
-    };
-  
-    const response = await fetch(`${GRAPHQL_URL}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query, variables })
-    })
-  
-    const result = await response.json();
-  
-    if(!result.data) {
-      return "Input not found";
-    }
-  
-    const payload = JSON.parse(fromHex(result.data.input.notices.edges[0].node.payload, 'string'));
-  
-    const pokemonId = payload.pokemonId;
-  
-    return pokemonId;
-  } catch (error) {
-    console.log("Wait...");
-    return 0;
   }
 }
 
