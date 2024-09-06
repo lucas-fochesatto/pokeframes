@@ -1,6 +1,5 @@
 import { BACKEND_URL } from "../constant/config";
 import { Battle } from "../types/types";
-import { fromHex } from 'viem'
 
 export const getBattleById = async (id: number) => {
   const response = await fetch(`${BACKEND_URL}/battle/${id}`);

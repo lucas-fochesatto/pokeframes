@@ -206,7 +206,6 @@ app.frame('/pokemons/:position/:index', async (c) => {
 
 app.frame('/battle/handle', async (c) => {
   const txId = c.transactionId ? c.transactionId : '0x';
-  const fid = c.frameData?.fid;
   let currentTx : `0x${string}` = '0x';
 
   if(txId !== '0x') {
@@ -299,7 +298,6 @@ app.frame('/finish-battle-create', async (c) => {
 
 app.frame('/battle/:gameId/join', async (c) => {
   const gameId = Number(c.req.param('gameId'));
-  const fid = c.frameData?.fid;
   const txId = c.transactionId ? c.transactionId : '0x';
   let currentTx : `0x${string}` = '0x';
 
@@ -642,8 +640,6 @@ app.frame('/new', (c) => {
 
 app.frame('/loading', async (c) => {
   const txId = c.transactionId ? c.transactionId : '0x';
-  const { frameData } = c;
-  const fid = frameData?.fid;
   let currentTx : `0x${string}` = '0x';
 
   if(txId !== '0x') {
@@ -791,7 +787,6 @@ app.frame('/share/:pokemonId', (c) => {
 })
 
 app.frame('/test', (c) => {
-  const pokemonId = c.req.param('pokemonId');
   return c.res({
     title,
     image: `/image/pokemenu`,
