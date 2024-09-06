@@ -1,17 +1,18 @@
-import { serveStatic } from '@hono/node-server/serve-static'
-import { Button, Frog, parseEther } from 'frog'
+import { serveStatic } from '@hono/node-server/serve-static';
+import { Button, Frog, parseEther } from 'frog';
 import { getFarcasterUserInfo } from '../lib/neynar.js';
 import { publicClient } from '../lib/contracts.js';
 import { devtools } from 'frog/dev';
 import { handle } from 'frog/vercel';
 import { serve } from '@hono/node-server';
 // import { BACKEND_URL } from '../constant/config.js';
-import { assignPokemonToUser, createBattle, getBattleById, getPokemonName, getPokemonsByPlayerId, joinBattle, queryInputNotice, playersMoved, setSelectedPokemons, makeMove } from '../lib/database.js';
+import { assignPokemonToUser, createBattle, getBattleById, getPokemonName, getPokemonsByPlayerId, joinBattle, setSelectedPokemons, makeMove } from '../lib/database.js';
 import { SHARE_INTENT, SHARE_TEXT, SHARE_EMBEDS, FRAME_URL, SHARE_GACHA, title } from '../constant/config.js';
 import { boundIndex } from '../lib/utils/boundIndex.js';
 import { generateGame, generateFight, generateBattleConfirm, generateWaitingRoom, generatePokemonCard, generatePokemonMenu } from '../image-generation/generators.js';
-import { Attack } from '../types/types.js';
 import { getPlayers, verifyMakerOrTaker } from '../lib/utils/battleUtils.js';
+import { validateFramesPost } from '@xmtp/frames-validator';
+import { Context, MiddlewareHandler, Next } from 'hono';
 
 type State = {
   verifiedAddresses?: `0x${string}`[];
@@ -26,6 +27,32 @@ type State = {
   hasMoved?: boolean;
 }
 
+const addMetaTags = (client: string, version?: string) => {
+  // Follow the OpenFrames meta tags spec
+  return {
+    unstable_metaTags: [
+      { property: `of:accepts`, content: version || "vNext" },
+      { property: `of:accepts:${client}`, content: version || "vNext" },
+    ],
+  };
+};
+
+const xmtpSupport = async (c: Context, next: Next) => {
+  // Check if the request is a POST and relevant for XMTP processing
+  if (c.req.method === "POST") {
+    const requestBody = (await c.req.json().catch(() => {})) || {};
+    if (requestBody?.clientProtocol?.includes("xmtp")) {
+      c.set("client", "xmtp");
+      const { verifiedWalletAddress } = await validateFramesPost(requestBody);
+      c.set("verifiedWalletAddress", verifiedWalletAddress);
+    } else {
+      // Add farcaster check
+      c.set("client", "farcaster");
+    }
+  }
+  await next();
+};
+
 export const app = new Frog<{ State: State }>({
   title,
   assetsPath: '/',
@@ -35,7 +62,10 @@ export const app = new Frog<{ State: State }>({
     pfp_url: '',
     userName: '',
   },
+  ...addMetaTags("xmtp"),
 })
+
+app.use(xmtpSupport);
 
 app.use('/*', serveStatic({ root: './public' }))
 
@@ -893,7 +923,6 @@ app.hono.get('/image/fight/:gameId/user/:userFid', async (c) => {
 
     let attacks : any = [];
     
-
     player.currentPokemon.moveDetails.forEach((move : any) => {
       attacks.push({atk: move.name, type: {name: move.type, color: '000000'}});
     })
