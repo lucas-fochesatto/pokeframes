@@ -12,7 +12,7 @@ import { boundIndex } from '../lib/utils/boundIndex.js';
 import { generateGame, generateFight, generateBattleConfirm, generateWaitingRoom, generatePokemonCard, generatePokemonMenu } from '../image-generation/generators.js';
 import { getPlayers, verifyMakerOrTaker } from '../lib/utils/battleUtils.js';
 import { validateFramesPost } from '@xmtp/frames-validator';
-import { Context, MiddlewareHandler, Next } from 'hono';
+import { Context, Next } from 'hono';
 
 type State = {
   verifiedAddresses?: `0x${string}`[];
@@ -603,6 +603,8 @@ app.frame('/battle/:gameId/run', async (c) => {
 app.frame('/pokedex/:position', async (c) => {
   const { frameData } = c;
   const fid = frameData?.fid;
+
+  console.log(fid);
 
   const playerPokemons = await getPokemonsByPlayerId(fid!);
   const totalPlayerPokemons = playerPokemons.length;

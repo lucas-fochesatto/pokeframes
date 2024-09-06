@@ -11,7 +11,6 @@ export const getBattleById = async (id: number) => {
 }
 
 let isMinting = false;
-let canQuery = false;
 let mintData : any = null;
 
 export const assignPokemonToUser = async (senderId: number, hash: `0x${string}`) => {
@@ -29,18 +28,10 @@ export const assignPokemonToUser = async (senderId: number, hash: `0x${string}`)
   
     if(response.ok) {
       console.log("Minted pokemon", mintData);
-      canQuery = true;
+      return mintData.pokemonId;
     } else {
       return "Failed to assign pokemon";
     }
-  }
-
-  if(canQuery) {
-    console.log('Data on query: ', mintData);
-    canQuery = false;
-    const pokemonId = await queryInputNotice(fromHex(mintData!.pokemonId.hex, `number`))
-    isMinting = false;
-    return pokemonId;
   }
 
   return 0;
@@ -51,7 +42,9 @@ export const getPokemonsByPlayerId = async (senderId: number, selectedPokemons: 
 
   const data = await response.json();
 
-  const inventory = data.inventory as number[];
+  const inventory = JSON.parse(data.inventory) as number[];
+
+  console.log(inventory);
 
   // gotta remove the selected pokemons from the inventory
   selectedPokemons.forEach(pokemonId => {
