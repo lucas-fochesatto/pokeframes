@@ -26,7 +26,7 @@ type State = {
   joinableBattleId?: number;
   isLoading?: boolean;
   hasMoved?: boolean;
-}
+} 
 
 const addMetaTags = (client: string, version?: string) => {
   // Follow the OpenFrames meta tags spec
